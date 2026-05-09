@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 
 // Import routes
-const userRoutes = require('./routes/userRoutes');
+const userRoutes = require('./routes/users');
 
 // Initialize express app
 const app = express();
