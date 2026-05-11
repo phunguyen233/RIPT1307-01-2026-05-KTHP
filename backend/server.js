@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const categoryRoutes = require('./routes/categoryRoutes');
+const productRoutes = require('./routes/productRoutes');
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(express.json()); // Xử lý dữ liệu JSON từ request body
 
 // Cấu hình endpoint cho các module
 app.use('/categories', categoryRoutes);
+app.use('/products', productRoutes);
 
 // Route kiểm tra server
 app.get('/', (req, res) => {
