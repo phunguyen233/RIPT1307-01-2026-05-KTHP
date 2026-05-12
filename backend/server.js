@@ -3,16 +3,16 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
 
-// 1. IMPORT ROUTES
+// ============ 1. IMPORT ROUTES ============
 const userRoutes = require('./routes/users');
 const categoryRoutes = require('./routes/categoryRoutes');
-// const productRoutes = require('./routes/productRoutes'); // Nếu có file này thì mở comment ra
+const productRoutes = require('./routes/productRoutes');
 
 const app = express();
 
-// ============ MIDDLEWARE ============
+// ============ 2. MIDDLEWARE (BẮT BUỘC PHẢI Ở TRÊN CÙNG) ============
 
-// Cấu hình CORS chuẩn (Gộp từ cả 2 file của mày)
+// Cấu hình CORS
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true,
@@ -20,42 +20,41 @@ app.use(cors({
   allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization,X-API-Key'
 }));
 
-// Xử lý dữ liệu JSON và Form (Giới hạn 50mb để sau này up ảnh cho sướng)
+// Parse Body - Cái này ĐẢM BẢO req.body không bị undefined
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// Log request để mày nhìn ở terminal cho dễ debug
+// Log request
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// ============ ROUTES ============
+// ============ 3. MAPPING ROUTES (KHÔNG BỊ TRÙNG LẶP NỮA) ============
 
-// Route kiểm tra server chạy hay chưa
+// Route test server
 app.get('/', (req, res) => {
   res.send('🚀 Backend Server đã hợp nhất và đang hoạt động...');
 });
 
-// Health check API
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
 
-// Mapping API cho từng module
-app.use('/api/users', userRoutes);      // Route của Phú
-app.use('/api/admin', userRoutes);      // Route admin của Phú
-app.use('/categories', categoryRoutes);   // Route Danh mục của Minh
-// app.use('/products', productRoutes);    // Route Sản phẩm của Minh (nếu có)
+// Mapping chuẩn cho tất cả API
+app.use('/api/users', userRoutes);
+app.use('/api/admin', userRoutes);
+app.use('/categories', categoryRoutes);
+app.use('/products', productRoutes);
 
-// ============ ERROR HANDLING ============
+// ============ 4. ERROR HANDLING ============
 
-// Xử lý khi gõ sai đường dẫn API (404)
+// Xử lý 404
 app.use((req, res) => {
   res.status(404).json({ error: 'Route không tồn tại!' });
 });
 
-// Bộ lọc lỗi hệ thống (Global Error Handler)
+// Xử lý lỗi hệ thống 500
 app.use((err, req, res, next) => {
   console.error('[SERVER ERROR]', err.message);
   const statusCode = err.statusCode || 500;
@@ -65,18 +64,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ============ SERVER STARTUP ============
+// ============ 5. SERVER STARTUP ============
 
 const port = parseInt(process.env.PORT, 10) || 4000;
 
 app.listen(port, () => {
   console.log(`\n==============================================`);
   console.log(`🚀 Server chạy tại: http://localhost:${port}`);
-  console.log(`📂 Danh sách API: /categories, /api/users`);
+  console.log(`📂 Danh sách API: /categories, /products, /api/users`);
   console.log(`==============================================\n`);
 });
 
-// Chống sập server khi gặp lỗi bất ngờ
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Rejection:', reason);
 });
