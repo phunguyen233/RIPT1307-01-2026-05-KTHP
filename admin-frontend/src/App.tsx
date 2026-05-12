@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import Sidebar from "./components/Sidebar";
 import CategoryManagement from "./pages/CategoryManagement";
 import "./App.css";
+import ProductManagement from "./pages/ProductManagement";
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -243,7 +244,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LayoutWrapper>
-              <PagePlaceholder title="Sản phẩm" />
+              <ProductManagement/>
             </LayoutWrapper>
           </ProtectedRoute>
         }

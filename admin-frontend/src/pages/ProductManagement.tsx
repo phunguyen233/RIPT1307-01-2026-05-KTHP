@@ -36,16 +36,24 @@ const ProductManagement: React.FC = () => {
   // Lấy Base URL từ file .env (Dùng cho Vite thì thay bằng import.meta.env.VITE_API_URL)
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 
-  // 1. Hàm lấy dữ liệu từ Backend
+  // 1. Hàm lấy dữ liệu từ Backend (Đã Fix sạch lỗi TypeScript)
   const fetchData = async () => {
     setLoading(true);
     try {
       const [prodRes, cateRes] = await Promise.all([
-        axios.get<Product[]>(`${API_URL}/products`),
-        axios.get<Category[]>(`${API_URL}/categories`)
+        // Ép kiểu chuẩn cấu trúc { data: [...] } cho Sản phẩm
+        axios.get<{ data: Product[] }>(`${API_URL}/products`),
+        // Dùng any cho Category để xử lý linh hoạt
+        axios.get<any>(`${API_URL}/categories`)
       ]);
-      setProducts(prodRes.data);
-      setCategories(cateRes.data);
+      
+      // Trỏ đúng lớp vỏ thứ 2 của Sản phẩm, thêm [] dự phòng
+      setProducts(prodRes.data.data || []);
+      
+      // Xử lý an toàn cho Danh mục (nếu API trả mảng trực tiếp hoặc bọc { data: [...] })
+      const cData = cateRes.data;
+      setCategories(Array.isArray(cData) ? cData : (cData?.data || []));
+
     } catch (error) {
       console.error("Lỗi fetch data:", error);
       message.error("Không thể kết nối đến server Backend!");
@@ -157,7 +165,7 @@ const ProductManagement: React.FC = () => {
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleAddProduct}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
