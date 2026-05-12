@@ -11,6 +11,7 @@ import {
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Auth from "./pages/Auth";
 import Sidebar from "./components/Sidebar";
+import CategoryManagement from "./pages/CategoryManagement";
 import "./App.css";
 
 // Protected Route Component
@@ -252,7 +253,7 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <LayoutWrapper>
-              <PagePlaceholder title="Danh mục" />
+              <CategoryManagement />
             </LayoutWrapper>
           </ProtectedRoute>
         }

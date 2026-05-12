@@ -1,35 +1,30 @@
-
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 require('dotenv').config();
 
-// Import routes
+// 1. IMPORT ROUTES
 const userRoutes = require('./routes/users');
+const categoryRoutes = require('./routes/categoryRoutes');
+// const productRoutes = require('./routes/productRoutes'); // Nếu có file này thì mở comment ra
 
-// Initialize express app
 const app = express();
 
 // ============ MIDDLEWARE ============
 
-// Body parser middleware
+// Cấu hình CORS chuẩn (Gộp từ cả 2 file của mày)
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true,
+  methods: 'GET,POST,PUT,DELETE,OPTIONS,PATCH',
+  allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization,X-API-Key'
+}));
+
+// Xử lý dữ liệu JSON và Form (Giới hạn 50mb để sau này up ảnh cho sướng)
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// CORS middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,X-API-Key');
-  
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  
-  next();
-});
-
-// Request logging middleware (optional)
+// Log request để mày nhìn ở terminal cho dễ debug
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
@@ -37,34 +32,35 @@ app.use((req, res, next) => {
 
 // ============ ROUTES ============
 
-// Health check endpoint
+// Route kiểm tra server chạy hay chưa
+app.get('/', (req, res) => {
+  res.send('🚀 Backend Server đã hợp nhất và đang hoạt động...');
+});
+
+// Health check API
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
 
-// User routes (registration, login)
-app.use('/api/users', userRoutes);
-
-// Admin auth routes (redirect to users for compatibility)
-app.use('/api/admin', userRoutes);
+// Mapping API cho từng module
+app.use('/api/users', userRoutes);      // Route của Phú
+app.use('/api/admin', userRoutes);      // Route admin của Phú
+app.use('/categories', categoryRoutes);   // Route Danh mục của Minh
+// app.use('/products', productRoutes);    // Route Sản phẩm của Minh (nếu có)
 
 // ============ ERROR HANDLING ============
 
-// 404 handler
+// Xử lý khi gõ sai đường dẫn API (404)
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  res.status(404).json({ error: 'Route không tồn tại!' });
 });
 
-// Global error handler
+// Bộ lọc lỗi hệ thống (Global Error Handler)
 app.use((err, req, res, next) => {
-  console.error('[ERROR]', err.message);
-  console.error(err.stack);
-  
+  console.error('[SERVER ERROR]', err.message);
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal server error';
-  
   res.status(statusCode).json({ 
-    error: message,
+    error: err.message || 'Lỗi server nội bộ',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
@@ -74,45 +70,20 @@ app.use((err, req, res, next) => {
 const port = parseInt(process.env.PORT, 10) || 4000;
 
 app.listen(port, () => {
-  console.log(`🚀 Backend server is running on http://localhost:${port}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️  Database: ${process.env.DB_HOST}`);
+  console.log(`\n==============================================`);
+  console.log(`🚀 Server chạy tại: http://localhost:${port}`);
+  console.log(`📂 Danh sách API: /categories, /api/users`);
+  console.log(`==============================================\n`);
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+// Chống sập server khi gặp lỗi bất ngờ
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
 });
 
-// Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
   process.exit(1);
 });
 
 module.exports = app;
-
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const categoryRoutes = require('./routes/categoryRoutes');
-
-
-// Middleware
-app.use(cors()); // Cho phép Frontend gọi API
-app.use(express.json()); // Xử lý dữ liệu JSON từ request body
-
-// Cấu hình endpoint cho các module
-app.use('/categories', categoryRoutes);
-
-// Route kiểm tra server
-app.get('/', (req, res) => {
-  res.send('Backend Server đang hoạt động...');
-});
-
-// Khởi tạo server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-
