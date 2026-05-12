@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const usersController = require('../controllers/user');
+const usersController = require('../controllers/users');
+
 const { verifyToken, verifyAdminToken } = require('../middleware/authMiddleware');
 
 // Public routes (không cần xác thực)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Modal, Form, Input, InputNumber, Select, Tag, message, Typography } from 'antd';
+import { Table, Button, Space, Modal, Form, Input, InputNumber, Select, Tag, message, Typography, Image } from 'antd'; // Bổ sung import Image
 import { PlusOutlined, DeleteOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import axios from 'axios';
@@ -7,7 +7,6 @@ import axios from 'axios';
 const { Title } = Typography;
 const { Option } = Select;
 
-// Định nghĩa kiểu dữ liệu (Interfaces) chuẩn theo Database của mày
 interface Category {
   id: number;
   name: string;
@@ -21,6 +20,7 @@ interface Product {
   price: number;
   cost_price?: number;
   description?: string;
+  image_url?: string; // Bổ sung trường image_url
   category_id: number;
   shop_id?: number;
   is_active: boolean;
@@ -30,27 +30,39 @@ const ProductManagement: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [editingId, setEditingId] = useState<number | null>(null); 
+  
   const [form] = Form.useForm();
 
-  // Lấy Base URL từ file .env (Dùng cho Vite thì thay bằng import.meta.env.VITE_API_URL)
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 
-  // 1. Hàm lấy dữ liệu từ Backend (Đã Fix sạch lỗi TypeScript)
+  const getCurrentShopId = () => {
+    try {
+      const userInfoString = localStorage.getItem('user'); 
+      if (userInfoString) {
+        const currentUser = JSON.parse(userInfoString);
+        return currentUser?.shop_id || 5; 
+      }
+    } catch (error) {
+      console.error("Lỗi đọc thông tin đăng nhập:", error);
+    }
+    return 5; 
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
+      const currentShopId = getCurrentShopId(); 
+
       const [prodRes, cateRes] = await Promise.all([
-        // Ép kiểu chuẩn cấu trúc { data: [...] } cho Sản phẩm
-        axios.get<{ data: Product[] }>(`${API_URL}/products`),
-        // Dùng any cho Category để xử lý linh hoạt
-        axios.get<any>(`${API_URL}/categories`)
+        axios.get<{ data: Product[] }>(`${API_URL}/products?shop_id=${currentShopId}`),
+        axios.get<any>(`${API_URL}/categories?shop_id=${currentShopId}`)
       ]);
       
-      // Trỏ đúng lớp vỏ thứ 2 của Sản phẩm, thêm [] dự phòng
       setProducts(prodRes.data.data || []);
       
-      // Xử lý an toàn cho Danh mục (nếu API trả mảng trực tiếp hoặc bọc { data: [...] })
       const cData = cateRes.data;
       setCategories(Array.isArray(cData) ? cData : (cData?.data || []));
 
@@ -64,31 +76,90 @@ const ProductManagement: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2. Hàm thêm sản phẩm mới
-  const handleAddProduct = async (values: Partial<Product>) => {
+  const handleSubmitForm = async (values: Partial<Product>) => {
     try {
-      // Gửi shop_id mặc định là 1 (theo logic Multi-tenant của DB)
-      const payload = { ...values, shop_id: 1, is_active: true };
-      await axios.post(`${API_URL}/products`, payload);
+      const currentShopId = getCurrentShopId(); 
+      const payload = { ...values, shop_id: currentShopId, is_active: true };
       
-      message.success("Thêm sản phẩm thành công!");
-      setIsModalVisible(false);
-      form.resetFields();
-      fetchData(); // Load lại bảng
+      if (editingId) {
+        await axios.put(`${API_URL}/products/${editingId}`, payload);
+        message.success("Cập nhật sản phẩm thành công!");
+      } else {
+        await axios.post(`${API_URL}/products`, payload);
+        message.success("Thêm sản phẩm thành công!");
+      }
+      
+      handleCloseModal(); 
+      fetchData(); 
     } catch (error) {
-      message.error("Lỗi khi thêm sản phẩm!");
+      message.error("Lỗi khi lưu sản phẩm!");
     }
   };
 
-  // 3. Định nghĩa các cột của bảng theo chuẩn phong cách tối giản
+  const handleEdit = (record: Product) => {
+    setEditingId(record.id);
+    form.setFieldsValue(record);
+    setIsModalVisible(true);
+  };
+
+  const handleDelete = (id: number) => {
+    Modal.confirm({
+      title: 'Xác nhận xóa sản phẩm',
+      content: 'Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này không thể hoàn tác.',
+      okText: 'Xóa luôn',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await axios.delete(`${API_URL}/products/${id}`);
+          message.success("Đã xóa sản phẩm!");
+          fetchData(); 
+        } catch (error) {
+          message.error("Lỗi khi xóa sản phẩm!");
+        }
+      }
+    });
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setEditingId(null);
+    form.resetFields();
+  };
+
+  // Cột của bảng (Đã chèn thêm cột Hình ảnh)
   const columns: ColumnsType<Product> = [
     {
       title: 'Mã SP',
       dataIndex: 'product_code',
       key: 'product_code',
       width: 100,
+    },
+    {
+      title: 'Hình ảnh',
+      dataIndex: 'image_url',
+      key: 'image_url',
+      width: 100,
+      align: 'center',
+      render: (url: string) => (
+        url ? (
+          <Image 
+            width={50} 
+            height={50} 
+            src={url} 
+            alt="Giày" 
+            style={{ objectFit: 'cover', borderRadius: '4px' }} 
+            fallback="https://via.placeholder.com/50?text=Lỗi+ảnh"
+          />
+        ) : (
+          <div style={{ width: 50, height: 50, background: '#f0f0f0', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#999', margin: '0 auto' }}>
+            Trống
+          </div>
+        )
+      )
     },
     {
       title: 'Tên sản phẩm',
@@ -128,8 +199,8 @@ const ProductManagement: React.FC = () => {
       align: 'center',
       render: (_, record: Product) => (
         <Space size="middle">
-          <Button type="text" icon={<EditOutlined />} />
-          <Button type="text" danger icon={<DeleteOutlined />} />
+          <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
         </Space>
       ),
     },
@@ -161,16 +232,16 @@ const ProductManagement: React.FC = () => {
       />
 
       <Modal
-        title="Thêm sản phẩm mới"
+        title={editingId ? "Cập nhật sản phẩm" : "Thêm sản phẩm mới"}
         open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
+        onCancel={handleCloseModal}
         footer={null}
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" onFinish={handleAddProduct}>
+        <Form form={form} layout="vertical" onFinish={handleSubmitForm}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <Form.Item name="product_code" label="Mã sản phẩm">
-              <Input placeholder="VD: SP001" />
+              <Input placeholder="VD: SP001" disabled={!!editingId} /> 
             </Form.Item>
             <Form.Item name="category_id" label="Danh mục" rules={[{ required: true, message: 'Chọn danh mục!' }]}>
               <Select placeholder="Chọn nhóm">
@@ -187,12 +258,17 @@ const ProductManagement: React.FC = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <Form.Item name="price" label="Giá bán (đ)" rules={[{ required: true }]}>
-              <InputNumber style={{ width: '100%' }} min={0} />
+              <InputNumber style={{ width: '100%' }} min={0} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
             </Form.Item>
             <Form.Item name="cost_price" label="Giá vốn (đ)">
-              <InputNumber style={{ width: '100%' }} min={0} />
+              <InputNumber style={{ width: '100%' }} min={0} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
             </Form.Item>
           </div>
+
+          {/* Ô nhập Link hình ảnh */}
+          <Form.Item name="image_url" label="Link hình ảnh (URL)">
+            <Input placeholder="Dán link ảnh giày vào đây (VD: https://.../nike.png)" />
+          </Form.Item>
 
           <Form.Item name="description" label="Mô tả">
             <Input.TextArea rows={3} />
@@ -200,7 +276,7 @@ const ProductManagement: React.FC = () => {
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
-              <Button onClick={() => setIsModalVisible(false)}>Hủy</Button>
+              <Button onClick={handleCloseModal}>Hủy</Button>
               <Button type="primary" htmlType="submit" style={{ background: '#000', borderColor: '#000' }}>
                 Lưu sản phẩm
               </Button>
