@@ -1,15 +1,10 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Layout, Button, Dropdown, Avatar, Space } from "antd";
-import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  LogoutOutlined,
-  SettingOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { Layout } from "antd";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import Auth from "./pages/Auth";
+import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import "./App.css";
 
@@ -22,27 +17,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 // Layout Wrapper Component for protected pages
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { sidebarCollapsed, setSidebarCollapsed } = useAuth();
-  const { setToken } = useAuth();
-  const user = localStorage.getItem("user");
-  const shopName = localStorage.getItem("shop_name");
-  const userData = user ? JSON.parse(user) : null;
-
-  const handleLogout = () => {
-    setToken(null);
-    window.location.href = "/auth";
-  };
-
-  const userMenuItems = [
-    { key: "profile", icon: <SettingOutlined />, label: "Hồ sơ cá nhân" },
-    { key: "logout", icon: <LogoutOutlined />, label: "Đăng xuất" },
-  ];
-
-  const handleUserMenuClick = (e: any) => {
-    if (e.key === "logout") {
-      handleLogout();
-    }
-  };
-
   const sidebarWidth = sidebarCollapsed ? 80 : 200;
 
   return (
@@ -79,42 +53,7 @@ const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </Layout.Sider>
 
       <Layout style={{ marginLeft: sidebarWidth, minHeight: "100vh" }}>
-        <Layout.Header
-          style={{
-            background: "#fff",
-            padding: "0 24px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            position: "sticky",
-            top: 0,
-            zIndex: 100,
-          }}
-        >
-          <Button
-            type="text"
-            icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            style={{ fontSize: "16px" }}
-          />
-          <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-            {shopName && (
-              <span style={{ fontSize: "14px", color: "#666" }}>
-                Shop: {shopName}
-              </span>
-            )}
-            <Dropdown
-              menu={{ items: userMenuItems, onClick: handleUserMenuClick }}
-              trigger={["click"]}
-            >
-              <Space style={{ cursor: "pointer" }}>
-                <Avatar size="large" icon={<UserOutlined />} />
-                <span>{userData?.name || "User"}</span>
-              </Space>
-            </Dropdown>
-          </div>
-        </Layout.Header>
+        <Header />
 
         <Layout.Content
           style={{
@@ -326,7 +265,9 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <ThemeProvider>
+          <AppRoutes />
+        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );
