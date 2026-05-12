@@ -1,5 +1,4 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -20,17 +19,17 @@ app.use(cors({
   allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization,X-API-Key'
 }));
 
-// Parse Body - Cái này ĐẢM BẢO req.body không bị undefined
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+// Parse Body - Dùng bản built-in của Express (chuẩn và gọn nhất, không bị trùng)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Log request
+// Log request để dễ debug
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// ============ 3. MAPPING ROUTES (KHÔNG BỊ TRÙNG LẶP NỮA) ============
+// ============ 3. MAPPING ROUTES ============
 
 // Route test server
 app.get('/', (req, res) => {
