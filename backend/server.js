@@ -43,6 +43,9 @@ app.get('/api/health', (req, res) => {
 // User routes (registration, login)
 app.use('/api/users', userRoutes);
 
+// Auth route alias for shop-frontend compatibility
+app.use('/api/auth', userRoutes);
+
 // Admin auth routes (redirect to users for compatibility)
 app.use('/api/admin', userRoutes);
 

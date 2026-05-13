@@ -12,6 +12,12 @@ const validateEmail = (email) => {
   return emailRegex.test(email);
 };
 
+const getShopIdFromApiKey = async (apiKey) => {
+  if (!apiKey) return null;
+  const result = await db.query('SELECT id FROM shops WHERE api_key = $1', [apiKey]);
+  return result.rows.length > 0 ? result.rows[0].id : null;
+};
+
 // ĐĂNG KÝ ADMIN (chỉ cho admin-frontend)
 exports.registerAdmin = async (req, res, next) => {
   try {
@@ -89,10 +95,13 @@ exports.registerAdmin = async (req, res, next) => {
 // ĐĂNG KÝ KHÁCH HÀNG (chỉ cho shop-frontend và ShopAIApp)
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, phone, shop_id, api_key } = req.body;
+    const { name, ten_dang_nhap, ho_ten, email, mat_khau, password, phone, shop_id, api_key } = req.body;
+    const userName = (name || ten_dang_nhap || ho_ten || '').trim();
+    const userPassword = password || mat_khau;
+    const apiKeyHeader = req.headers['x-api-key'] || req.headers['X-API-Key'];
 
     // Validate input
-    if (!name || !email || !password) {
+    if (!userName || !email || !userPassword) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
@@ -100,12 +109,17 @@ exports.register = async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    if (password.length < 6) {
+    if (userPassword.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    // If shop_id and api_key are provided, verify they exist
-    if (shop_id && api_key) {
+    let resolvedShopId = null;
+    if (apiKeyHeader) {
+      resolvedShopId = await getShopIdFromApiKey(apiKeyHeader);
+      if (!resolvedShopId) {
+        return res.status(401).json({ error: 'Invalid shop API key' });
+      }
+    } else if (shop_id && api_key) {
       const shopExists = await db.query(
         'SELECT id FROM shops WHERE id = $1 AND api_key = $2',
         [shop_id, api_key]
@@ -113,6 +127,9 @@ exports.register = async (req, res, next) => {
       if (shopExists.rows.length === 0) {
         return res.status(401).json({ error: 'Invalid shop credentials' });
       }
+      resolvedShopId = shop_id;
+    } else {
+      return res.status(400).json({ error: 'Shop API key is required to register a customer' });
     }
 
     // Kiểm tra email đã tồn tại
@@ -123,17 +140,17 @@ exports.register = async (req, res, next) => {
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(userPassword, salt);
 
     // Tạo user mới với role customer
     const result = await db.query(
       'INSERT INTO users (name, email, password, role, shop_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, shop_id, created_at',
-      [name, email, hashedPassword, 'customer', shop_id || null]
+      [userName, email, hashedPassword, 'customer', resolvedShopId]
     );
 
     // Tạo JWT token
     const token = jwt.sign(
-      { id: result.rows[0].id, email: result.rows[0].email, role: result.rows[0].role, shop_id: shop_id || null },
+      { id: result.rows[0].id, email: result.rows[0].email, role: result.rows[0].role, shop_id: resolvedShopId },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -151,23 +168,25 @@ exports.register = async (req, res, next) => {
 // ĐĂNG NHẬP
 exports.login = async (req, res, next) => {
   try {
-    const { email, password, api_key } = req.body;
+    const { email, ten_dang_nhap, mat_khau, password } = req.body;
+    const identifier = email || ten_dang_nhap;
+    const userPassword = password || mat_khau;
 
     // Validate input
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!identifier || !userPassword) {
+      return res.status(400).json({ error: 'Email/username and password are required' });
     }
 
-    // Tìm user theo email
-    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    // Tìm user theo email hoặc tên đăng nhập
+    const result = await db.query('SELECT * FROM users WHERE email = $1 OR name = $1', [identifier]);
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const user = result.rows[0];
 
     // Kiểm tra password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(userPassword, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }

@@ -1,11 +1,8 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import { API_KEY } from "../api/shopApiClient";
+import shopApiClient, { API_KEY } from "../api/shopApiClient";
 import customersAPI from "../api/customersAPI";
-
-const API = "https://bepmam-backend.onrender.com/api";
 
 export default function Auth() {
   const [tab, setTab] = useState<"login" | "register">("login");
@@ -18,18 +15,14 @@ export default function Auth() {
   const [loginSuccess, setLoginSuccess] = useState("");
 
   // register
-  const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [hoTen, setHoTen] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [registerError, setRegisterError] = useState("");
   const [registerFieldErrors, setRegisterFieldErrors] = useState<{
-    ten_dang_nhap?: string;
     mat_khau?: string;
     ho_ten?: string;
     email?: string;
-    so_dien_thoai?: string;
     general?: string;
   }>({});
   const [registerSuccess, setRegisterSuccess] = useState("");
@@ -53,7 +46,7 @@ export default function Auth() {
       return;
     }
     try {
-      const res = await axios.post(`${API}/auth/login`, { ten_dang_nhap: username, mat_khau: password });
+      const res = await shopApiClient.post('/auth/login', { ten_dang_nhap: username, mat_khau: password });
       if (res.data?.token) {
         localStorage.setItem("token", res.data.token);
         if (res.data.user) localStorage.setItem("user", JSON.stringify(res.data.user));
@@ -84,22 +77,17 @@ export default function Auth() {
     setRegisterFieldErrors({});
     // client-side validation
     const errs: any = {};
-    if (!regUsername.trim()) errs.ten_dang_nhap = "Vui lòng nhập tên đăng nhập";
-    if (!regPassword || regPassword.length < 6) errs.mat_khau = "Mật khẩu phải có ít nhất 6 ký tự";
     if (!hoTen.trim()) errs.ho_ten = "Vui lòng nhập họ tên";
+    if (!regPassword || regPassword.length < 6) errs.mat_khau = "Mật khẩu phải có ít nhất 6 ký tự";
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim() || !emailRe.test(email)) errs.email = "Email không hợp lệ";
-    const phoneRe = /^\+?[0-9\s\-]{7,20}$/;
-    if (!phone.trim() || !phoneRe.test(phone)) errs.so_dien_thoai = "Số điện thoại không hợp lệ";
     if (Object.keys(errs).length) {
       setRegisterFieldErrors(errs);
       // Build a user-friendly list of missing/invalid fields for an alert
       const labelMap: { [k: string]: string } = {
-        ten_dang_nhap: 'Tên đăng nhập',
         mat_khau: 'Mật khẩu',
         ho_ten: 'Họ tên',
         email: 'Email',
-        so_dien_thoai: 'Số điện thoại',
       };
       const msgs = Object.entries(errs).map(([k, v]) => `${labelMap[k] || k}: ${v}`);
       alert('Vui lòng sửa các lỗi sau trước khi đăng ký:\n' + msgs.join('\n'));
@@ -107,21 +95,7 @@ export default function Auth() {
     }
     try {
       // Register user via API
-      const res = await axios.post(`${API}/auth/register`, { ten_dang_nhap: regUsername, mat_khau: regPassword, ho_ten: hoTen, email, so_dien_thoai: phone });
-      
-      // If API key is configured, also create customer in admin's shop
-      if (API_KEY && phone) {
-        try {
-          await customersAPI.create({
-            name: hoTen,
-            phone: phone,
-            address: ""
-          });
-        } catch (customerErr) {
-          console.error("Failed to create customer:", customerErr);
-          // Continue even if customer creation fails
-        }
-      }
+      const res = await shopApiClient.post('/auth/register', { name: hoTen, mat_khau: regPassword, email });
       
       // Show success message and then switch to login tab. Do NOT auto-login.
       setRegisterSuccess("Đăng ký thành công");
@@ -140,12 +114,12 @@ export default function Auth() {
       if (fieldErrors && typeof fieldErrors === "object") {
         setRegisterFieldErrors(fieldErrors);
         // pick a primary error to show above the button (prefer email)
-        const primary = fieldErrors.email || fieldErrors.ten_dang_nhap || fieldErrors.mat_khau || Object.values(fieldErrors)[0];
+        const primary = fieldErrors.email || fieldErrors.name || fieldErrors.ho_ten || fieldErrors.mat_khau || Object.values(fieldErrors)[0];
         if (primary) setRegisterError(String(primary));
       } else if (err?.response?.status === 409) {
         // conflict (duplicate) — show a single general message above the register button
-        // Do NOT show field-level errors for email/phone in this case.
-        const dupMsg = 'tài khoản đã tồn tại';
+        // Do NOT show field-level errors for email/name in this case.
+        const dupMsg = 'Tài khoản đã tồn tại';
         setRegisterFieldErrors({});
         setRegisterError(dupMsg);
       } else if (data?.message) {
@@ -164,22 +138,12 @@ export default function Auth() {
           } else {
             setRegisterFieldErrors({ email: friendly });
           }
-        } else if (lower.includes('tên') || lower.includes('username') || lower.includes('ten_dang_nhap')) {
+        } else if (lower.includes('tên') || lower.includes('username') || lower.includes('ten_dang_nhap') || lower.includes('name') || lower.includes('ho_ten')) {
           if (lower.includes('exist') || lower.includes('đã tồn tại')) {
-            friendly = 'Tên đăng nhập đã tồn tại';
+            friendly = 'Tên đã tồn tại';
             setRegisterFieldErrors({});
           } else {
-            setRegisterFieldErrors({ ten_dang_nhap: friendly });
-          }
-        } else if (lower.includes('số') || lower.includes('điện thoại') || lower.includes('phone')) {
-          if (lower.includes('exist') || lower.includes('đã tồn tại')) {
-            friendly = 'Số điện thoại đã tồn tại';
-            setRegisterFieldErrors({});
-          } else if (lower.includes('invalid') || lower.includes('không hợp lệ')) {
-            friendly = 'Số điện thoại không hợp lệ';
-            setRegisterFieldErrors({ so_dien_thoai: friendly });
-          } else {
-            setRegisterFieldErrors({ so_dien_thoai: friendly });
+            setRegisterFieldErrors({ ho_ten: friendly });
           }
         } else {
           // fallback: use server message as-is if it's informative
@@ -213,7 +177,7 @@ export default function Auth() {
                   try {
                     const idToken = resp?.credential;
                     if (!idToken) return;
-                    const res = await axios.post(`${API}/auth/google`, { idToken });
+                    const res = await shopApiClient.post('/auth/google', { idToken });
                     if (res.data?.token) {
                       localStorage.setItem('token', res.data.token);
                       if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
@@ -240,7 +204,7 @@ export default function Auth() {
                   try {
                     const code = resp?.code;
                     if (!code) return;
-                    const res = await axios.post(`${API}/auth/google/code`, { code });
+                    const res = await shopApiClient.post('/auth/google/code', { code });
                     if (res.data?.token) {
                       localStorage.setItem('token', res.data.token);
                       if (res.data.user) localStorage.setItem('user', JSON.stringify(res.data.user));
@@ -372,14 +336,6 @@ export default function Auth() {
         ) : (
           <form onSubmit={handleRegister} className="space-y-3">
             <div>
-              <input value={regUsername} onChange={(e) => setRegUsername(e.target.value)} placeholder="Tên đăng nhập" className="w-full p-2 border rounded" />
-              {registerFieldErrors.ten_dang_nhap && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.ten_dang_nhap}</p>}
-            </div>
-            <div>
-              <input value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Mật khẩu" type="password" className="w-full p-2 border rounded" />
-              {registerFieldErrors.mat_khau && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.mat_khau}</p>}
-            </div>
-            <div>
               <input value={hoTen} onChange={(e) => setHoTen(e.target.value)} placeholder="Họ tên" className="w-full p-2 border rounded" />
               {registerFieldErrors.ho_ten && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.ho_ten}</p>}
             </div>
@@ -390,8 +346,8 @@ export default function Auth() {
               )}
             </div>
             <div>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Số điện thoại" className="w-full p-2 border rounded" />
-              {registerFieldErrors.so_dien_thoai && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.so_dien_thoai}</p>}
+              <input value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Mật khẩu" type="password" className="w-full p-2 border rounded" />
+              {registerFieldErrors.mat_khau && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.mat_khau}</p>}
             </div>
             {/* Show register error or success directly above the register button */}
             {registerError && <p className="text-red-600 text-sm text-center">{registerError}</p>}
