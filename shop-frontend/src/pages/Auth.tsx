@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { API_KEY } from "../api/shopApiClient";
 import customersAPI from "../api/customersAPI";
 
-const API = "https://bepmam-backend.onrender.com/api";
+const API = "http://localhost:4000/api/users";
 
 export default function Auth() {
   const [tab, setTab] = useState<"login" | "register">("login");
@@ -53,7 +53,7 @@ export default function Auth() {
       return;
     }
     try {
-      const res = await axios.post(`${API}/auth/login`, { ten_dang_nhap: username, mat_khau: password });
+      const res = await axios.post(`${API}/login`, { ten_dang_nhap: username, mat_khau: password });
       if (res.data?.token) {
         localStorage.setItem("token", res.data.token);
         if (res.data.user) localStorage.setItem("user", JSON.stringify(res.data.user));
@@ -107,7 +107,7 @@ export default function Auth() {
     }
     try {
       // Register user via API
-      const res = await axios.post(`${API}/auth/register`, { ten_dang_nhap: regUsername, mat_khau: regPassword, ho_ten: hoTen, email, so_dien_thoai: phone });
+      const res = await axios.post(`${API}/register`, { ten_dang_nhap: regUsername, mat_khau: regPassword, ho_ten: hoTen, email, so_dien_thoai: phone });
       
       // If API key is configured, also create customer in admin's shop
       if (API_KEY && phone) {
