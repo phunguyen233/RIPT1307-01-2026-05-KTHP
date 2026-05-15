@@ -15,7 +15,16 @@ const pool = new Pool({
 // GET /: Lấy danh sách sản phẩm (JOIN, lọc, tìm kiếm, phân trang)
 const getProducts = async (req, res) => {
     try {
-        const { shop_id, category_id, is_active, search, page = 1, limit = 10 } = req.query;
+        let { shop_id, category_id, is_active, search, page = 1, limit = 10 } = req.query;
+
+        // Nếu header có truyền x-api-key, lấy shop_id của shop đó
+        const apiKey = req.headers['x-api-key'];
+        if (apiKey && !shop_id) {
+            const shopResult = await pool.query('SELECT id FROM shops WHERE api_key = $1', [apiKey]);
+            if (shopResult.rows.length > 0) {
+                shop_id = shopResult.rows[0].id;
+            }
+        }
         
         let query = `
             SELECT p.*, c.name as category_name

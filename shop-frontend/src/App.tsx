@@ -22,12 +22,17 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* TRANG ĐĂNG NHẬP / ĐĂNG KÝ */}
         <Route path="/auth" element={<Auth />} />
+        
+        {/* KHU VỰC CÔNG CỘNG: Mở toang cửa cho khách vào HomePage xem Menu */}
         <Route
           path="/"
-          element={token ? <HomePage onLogout={handleLogout} /> : <Navigate to="/auth" replace />}
+          element={<HomePage onLogout={handleLogout} />} 
         />
-        <Route path="*" element={<Navigate to={token ? '/' : '/auth'} replace />} />
+        
+        {/* NẾU KHÁCH GÕ LINK BẬY BẠ: Đẩy về trang chủ cho an toàn */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,6 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { Layout, Button, Avatar, Dropdown } from "antd";
-import { MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined, LogoutOutlined, MoonOutlined, SunOutlined } from "@ant-design/icons";
+import { 
+  MenuFoldOutlined, 
+  MenuUnfoldOutlined, 
+  UserOutlined, 
+  LogoutOutlined, 
+  MoonOutlined, 
+  SunOutlined,
+  ShopOutlined // Tao import thêm cái icon Cửa hàng ở đây
+} from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -10,12 +18,24 @@ export default function Header() {
   const navigate = useNavigate();
   const { setToken, sidebarCollapsed, setSidebarCollapsed } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  
+  // Lấy data user từ két sắt
   const userRaw = localStorage.getItem("user");
   const user = userRaw ? JSON.parse(userRaw) : null;
 
   const handleLogout = () => {
     setToken(null);
     navigate("/login");
+  };
+
+  // Hàm xử lý khi bấm nút "Xem cửa hàng"
+  const handleViewShop = () => {
+    if (user && user.shop_id) {
+      // Mở sang web khách hàng cổng 3001, tự động gài ID vào link
+      window.open(`http://localhost:3001?shop_id=${user.shop_id}`, '_blank');
+    } else {
+      alert('Tài khoản này chưa được liên kết với cửa hàng nào!');
+    }
   };
 
   const userMenuItems = [
@@ -38,12 +58,24 @@ export default function Header() {
         />
         <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>Hệ thống quản lý cửa hàng</h1>
       </div>
+      
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* Nút Xem Cửa Hàng tao nhét vào đây, đứng cạnh nút đổi Theme */}
+        <Button 
+          type="primary" 
+          icon={<ShopOutlined />} 
+          onClick={handleViewShop}
+          style={{ display: 'flex', alignItems: 'center', background: '#5D4432' }} // Màu nâu hợp với tông Cafe
+        >
+          Xem cửa hàng
+        </Button>
+
         <Button
           type="text"
           icon={theme === 'dark' ? <SunOutlined /> : <MoonOutlined />}
           onClick={toggleTheme}
         />
+        
         {user && (
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
             <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>

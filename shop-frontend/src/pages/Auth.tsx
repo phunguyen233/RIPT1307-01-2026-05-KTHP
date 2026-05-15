@@ -46,14 +46,14 @@ export default function Auth() {
     setLoginSuccess("");
     // client-side basic validation
     const fieldErrs: { username?: string; password?: string } = {};
-    if (!username.trim()) fieldErrs.username = "Vui lòng nhập tên đăng nhập";
+    if (!username.trim()) fieldErrs.username = "Vui lòng nhập Email";
     if (!password) fieldErrs.password = "Vui lòng nhập mật khẩu";
     if (Object.keys(fieldErrs).length) {
       setLoginFieldErrors(fieldErrs);
       return;
     }
     try {
-      const res = await axios.post(`${API}/login`, { ten_dang_nhap: username, mat_khau: password });
+      const res = await axios.post(`${API}/login`, { email: username, password: password });
       if (res.data?.token) {
         localStorage.setItem("token", res.data.token);
         if (res.data.user) localStorage.setItem("user", JSON.stringify(res.data.user));
@@ -107,21 +107,7 @@ export default function Auth() {
     }
     try {
       // Register user via API
-      const res = await axios.post(`${API}/register`, { ten_dang_nhap: regUsername, mat_khau: regPassword, ho_ten: hoTen, email, so_dien_thoai: phone });
-      
-      // If API key is configured, also create customer in admin's shop
-      if (API_KEY && phone) {
-        try {
-          await customersAPI.create({
-            name: hoTen,
-            phone: phone,
-            address: ""
-          });
-        } catch (customerErr) {
-          console.error("Failed to create customer:", customerErr);
-          // Continue even if customer creation fails
-        }
-      }
+      const res = await axios.post(`${API}/register`, { name: hoTen, email: email, password: regPassword, phone: phone });
       
       // Show success message and then switch to login tab. Do NOT auto-login.
       setRegisterSuccess("Đăng ký thành công");
@@ -318,7 +304,7 @@ export default function Auth() {
         {tab === "login" ? (
           <form onSubmit={handleLogin} className="space-y-3">
             <div>
-              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Tên đăng nhập" className="w-full p-2 border rounded" />
+              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Email" className="w-full p-2 border rounded" />
               {loginFieldErrors.username && <p className="text-red-600 text-xs mt-1">{loginFieldErrors.username}</p>}
             </div>
             <div>

@@ -2,7 +2,8 @@ import axios from "axios";
 
 // API key được cấu hình trong file .env hoặc biến môi trường
 // REACT_APP_SHOP_API_KEY=your_api_key_here
-export const API_KEY = process.env.REACT_APP_SHOP_API_KEY || "bepmam_51033565fd6c3177ab4cb7e0a723fb5e584b2b41b495542d7dcb5b460607a598";
+// Điền API_KEY của Cửa hàng Cafe bạn vừa tạo vào đây hoặc vào file .env
+export const API_KEY = process.env.REACT_APP_SHOP_API_KEY || "551d9e8f8c8c31ab6b7fa463b0cb2f67cf2d574d738184c5a0c725ba18b4a387";
 const API_BASE_URL = process.env.REACT_APP_SHOP_API_URL || "http://localhost:4000";
 
 const defaultHeaders: Record<string, string> = {
