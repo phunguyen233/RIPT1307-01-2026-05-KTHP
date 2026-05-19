@@ -5,7 +5,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const orderRoute = require("./routes/orderRoute");
-
+const customerController = require("./routes/customerRoute");
 const app = express();
 
 app.use(cors());
