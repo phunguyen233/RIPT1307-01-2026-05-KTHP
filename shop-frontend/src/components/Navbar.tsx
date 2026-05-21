@@ -1,9 +1,10 @@
 import React from 'react';
 import { Coffee, ShoppingBag, LogOut, LogIn } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 const Navbar = ({ onLogout, userName }: { onLogout: () => void, userName?: string | null }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <nav className="sticky top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-secondary">
@@ -15,9 +16,11 @@ const Navbar = ({ onLogout, userName }: { onLogout: () => void, userName?: strin
           </div>
           
           <div className="hidden md:flex items-center space-x-8">
-            <a href="#home" className="text-primary font-medium hover:text-warning transition-colors">Trang chủ</a>
-            <a href="#menu" className="text-text font-medium hover:text-warning transition-colors">Thực đơn</a>
-            <a href="#about" className="text-text font-medium hover:text-warning transition-colors">Về chúng tôi</a>
+            <Link to={`/${location.search}`} className="text-text font-medium hover:text-danger transition-colors uppercase text-sm">Trang chủ</Link>
+            <Link to={`/products${location.search}`} className="text-text font-medium hover:text-danger transition-colors uppercase text-sm border-b-2 border-transparent hover:border-danger">Sản phẩm</Link>
+            <a href={`#news`} className="text-text font-medium hover:text-danger transition-colors uppercase text-sm">Tin tức</a>
+            <a href={`#about`} className="text-text font-medium hover:text-danger transition-colors uppercase text-sm">Giới thiệu</a>
+            <a href={`#contact`} className="text-text font-medium hover:text-danger transition-colors uppercase text-sm">Liên hệ</a>
           </div>
 
           <div className="flex items-center gap-4">

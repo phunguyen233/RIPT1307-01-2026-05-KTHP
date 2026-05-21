@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Auth from './pages/Auth';
 import HomePage from './pages/HomePage';
+import Products from './pages/Products';
 
 function App() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
@@ -29,6 +30,12 @@ function App() {
         <Route
           path="/"
           element={<HomePage onLogout={handleLogout} />} 
+        />
+
+        {/* TRANG SẢN PHẨM */}
+        <Route
+          path="/products"
+          element={<Products onLogout={handleLogout} />} 
         />
         
         {/* NẾU KHÁCH GÕ LINK BẬY BẠ: Đẩy về trang chủ cho an toàn */}
