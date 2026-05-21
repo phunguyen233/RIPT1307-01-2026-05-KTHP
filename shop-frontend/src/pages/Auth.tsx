@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mail, Lock, User, Phone, LogIn, UserPlus } from "lucide-react";
 import { API_KEY } from "../api/shopApiClient";
 import customersAPI from "../api/customersAPI";
 
@@ -293,99 +294,244 @@ export default function Auth() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="bg-white shadow-md rounded-lg w-full max-w-md p-6">
-        <h2 className="text-lg font-semibold text-center mb-2">Đăng nhập hoặc đăng ký để tiếp tục</h2>
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => setTab("login")} className={`flex-1 py-2 rounded ${tab === "login" ? "bg-gray-100 font-semibold" : "bg-transparent"}`}>Đăng nhập</button>
-          <button onClick={() => setTab("register")} className={`flex-1 py-2 rounded ${tab === "register" ? "bg-gray-100 font-semibold" : "bg-transparent"}`}>Đăng ký</button>
+    <div className="min-h-screen flex items-center justify-center bg-surface p-4 overflow-hidden relative font-primary">
+      {/* Decorative background circles - using primary/secondary colors */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-primary opacity-5 rounded-full mix-blend-multiply filter blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+      <div className="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-warning opacity-5 rounded-full mix-blend-multiply filter blur-3xl transform translate-x-1/3 translate-y-1/3"></div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="bg-white/90 backdrop-blur-xl shadow-2xl rounded-3xl w-full max-w-md p-8 relative z-10 border border-secondary"
+      >
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-primary mb-2">
+            Cofee & Co.
+          </h2>
+          <p className="text-text/70 text-sm">Đăng nhập hoặc tạo tài khoản mới để tiếp tục</p>
         </div>
 
-        {tab === "login" ? (
-          <form onSubmit={handleLogin} className="space-y-3">
-            <div>
-              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Email" className="w-full p-2 border rounded" />
-              {loginFieldErrors.username && <p className="text-red-600 text-xs mt-1">{loginFieldErrors.username}</p>}
-            </div>
-            <div>
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mật khẩu" type="password" className="w-full p-2 border rounded" />
-              {loginFieldErrors.password && <p className="text-red-600 text-xs mt-1">{loginFieldErrors.password}</p>}
-            </div>
-            {/* Success / General login error shown directly above the submit button */}
-            {loginSuccess && <p className="text-green-600 text-sm text-center">{loginSuccess}</p>}
-            {loginError && <p className="text-red-600 text-sm text-center">{loginError}</p>}
-            <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded">{loginSuccess ? "Đăng nhập thành công" : "Đăng nhập"}</button>
-            <div className="text-center text-sm text-gray-500 mt-2">Hoặc đăng nhập bằng</div>
-            <div className="mt-2">
-              <div className="w-full">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setLoginError('');
-                    try {
-                      await initGSI();
-                      // After init, try code client first, then id prompt
-                      const codeClient = (window as any).__googleCodeClient;
-                      if (codeClient && typeof codeClient.requestCode === 'function') {
-                        codeClient.requestCode();
-                        return;
-                      }
-                      if ((window as any).google && (window as any).google.accounts && (window as any).google.accounts.id) {
-                        (window as any).google.accounts.id.prompt();
-                        return;
-                      }
-                      setLoginError('Google Sign-in chưa sẵn sàng hoặc chưa cấu hình');
-                    } catch (err) {
-                      console.error('GSI init + sign-in error', err);
-                      setLoginError('Không thể mở Google Sign-in');
-                    }
-                  }}
-                  className="w-full flex items-center justify-center gap-3 bg-white border rounded py-2 hover:shadow-sm"
-                >
-                  {/* Google logo */}
-                  <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.27 1.53 8.14 2.79l6.03-6.03C34.56 3.2 29.65 1.5 24 1.5 14.81 1.5 6.99 6.86 3.3 14.34l7.42 5.78C12.95 15.01 18.97 9.5 24 9.5z"/>
-                    <path fill="#4285F4" d="M46.5 24c0-1.6-.15-3.14-.42-4.62H24v8.76h12.88c-.55 2.96-2.21 5.46-4.72 7.15l7.42 5.77C43.99 36.77 46.5 30.8 46.5 24z"/>
-                    <path fill="#FBBC05" d="M10.72 29.12A14.94 14.94 0 0 1 9.5 24c0-1.92.34-3.76.95-5.44L3.03 12.8A23.99 23.99 0 0 0 1.5 24c0 3.42.82 6.65 2.27 9.5l7-4.38z"/>
-                    <path fill="#34A853" d="M24 46.5c6.45 0 11.87-2.14 15.83-5.82l-7.42-5.77C30.35 36.64 27.3 37.9 24 37.9c-5.03 0-11.05-5.51-13.28-10.62l-7.42 5.78C6.99 41.64 14.81 46.5 24 46.5z"/>
-                  </svg>
-                  <span className="text-sm font-medium">Google</span>
-                </button>
-                <div id="g_id_signin" style={{ display: 'none' }}></div>
+        <div className="flex bg-secondary/50 p-1 rounded-xl mb-6 relative">
+          <button
+            type="button"
+            onClick={() => setTab("login")}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 relative z-10 ${tab === "login" ? "text-primary" : "text-text/60 hover:text-text"}`}
+          >
+            Đăng nhập
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("register")}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 relative z-10 ${tab === "register" ? "text-primary" : "text-text/60 hover:text-text"}`}
+          >
+            Đăng ký
+          </button>
+          <div 
+            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-sm transition-transform duration-300 ease-in-out ${tab === 'register' ? 'translate-x-[calc(100%+0px)] left-1' : 'translate-x-0 left-1'}`}
+          />
+        </div>
+
+        <AnimatePresence mode="wait">
+          {tab === "login" ? (
+            <motion.form 
+              key="login"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+              onSubmit={handleLogin} 
+              className="space-y-4"
+            >
+              <div className="space-y-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/50">
+                    <Mail size={18} />
+                  </div>
+                  <input 
+                    value={username} 
+                    onChange={(e) => setUsername(e.target.value)} 
+                    placeholder="Email" 
+                    className="w-full pl-10 pr-4 py-3 bg-surface border border-secondary rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-text" 
+                  />
+                </div>
+                {loginFieldErrors.username && <p className="text-danger text-xs ml-1">{loginFieldErrors.username}</p>}
               </div>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleRegister} className="space-y-3">
-            <div>
-              <input value={regUsername} onChange={(e) => setRegUsername(e.target.value)} placeholder="Tên đăng nhập" className="w-full p-2 border rounded" />
-              {registerFieldErrors.ten_dang_nhap && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.ten_dang_nhap}</p>}
-            </div>
-            <div>
-              <input value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Mật khẩu" type="password" className="w-full p-2 border rounded" />
-              {registerFieldErrors.mat_khau && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.mat_khau}</p>}
-            </div>
-            <div>
-              <input value={hoTen} onChange={(e) => setHoTen(e.target.value)} placeholder="Họ tên" className="w-full p-2 border rounded" />
-              {registerFieldErrors.ho_ten && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.ho_ten}</p>}
-            </div>
-            <div>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full p-2 border rounded" />
-              {(registerFieldErrors.email && (registerFieldErrors.email || '').toLowerCase().trim() !== 'tài khoản đã tồn tại') && (
-                <p className="text-red-600 text-xs mt-1">{registerFieldErrors.email}</p>
-              )}
-            </div>
-            <div>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Số điện thoại" className="w-full p-2 border rounded" />
-              {registerFieldErrors.so_dien_thoai && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.so_dien_thoai}</p>}
-            </div>
-            {/* Show register error or success directly above the register button */}
-            {registerError && <p className="text-red-600 text-sm text-center">{registerError}</p>}
-            {registerSuccess && <p className="text-green-600 text-sm text-center">{registerSuccess}</p>}
-            <button type="submit" className="w-full bg-green-600 text-white py-2 rounded">{registerSuccess ? "Đăng ký thành công" : "Đăng ký"}</button>
-          </form>
-        )}
-      </div>
+
+              <div className="space-y-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/50">
+                    <Lock size={18} />
+                  </div>
+                  <input 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    placeholder="Mật khẩu" 
+                    type="password" 
+                    className="w-full pl-10 pr-4 py-3 bg-surface border border-secondary rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-text" 
+                  />
+                </div>
+                {loginFieldErrors.password && <p className="text-danger text-xs ml-1">{loginFieldErrors.password}</p>}
+              </div>
+
+              {loginSuccess && <p className="text-success text-sm text-center font-medium">{loginSuccess}</p>}
+              {loginError && <p className="text-danger text-sm text-center font-medium">{loginError}</p>}
+              
+              <button 
+                type="submit" 
+                className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-sm flex justify-center items-center gap-2"
+              >
+                <LogIn size={20} />
+                {loginSuccess ? "Đăng nhập thành công" : "Đăng nhập"}
+              </button>
+
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-secondary"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-text/50 rounded-full text-xs">Hoặc tiếp tục với</span>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setLoginError('');
+                      try {
+                        await initGSI();
+                        const codeClient = (window as any).__googleCodeClient;
+                        if (codeClient && typeof codeClient.requestCode === 'function') {
+                          codeClient.requestCode();
+                          return;
+                        }
+                        if ((window as any).google?.accounts?.id) {
+                          (window as any).google.accounts.id.prompt();
+                          return;
+                        }
+                        setLoginError('Google Sign-in chưa sẵn sàng');
+                      } catch (err) {
+                        setLoginError('Không thể mở Google Sign-in');
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-3 bg-surface border border-secondary rounded-xl py-3 hover:bg-secondary/50 hover:shadow-sm transition-all font-medium text-text"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.27 1.53 8.14 2.79l6.03-6.03C34.56 3.2 29.65 1.5 24 1.5 14.81 1.5 6.99 6.86 3.3 14.34l7.42 5.78C12.95 15.01 18.97 9.5 24 9.5z"/>
+                      <path fill="#4285F4" d="M46.5 24c0-1.6-.15-3.14-.42-4.62H24v8.76h12.88c-.55 2.96-2.21 5.46-4.72 7.15l7.42 5.77C43.99 36.77 46.5 30.8 46.5 24z"/>
+                      <path fill="#FBBC05" d="M10.72 29.12A14.94 14.94 0 0 1 9.5 24c0-1.92.34-3.76.95-5.44L3.03 12.8A23.99 23.99 0 0 0 1.5 24c0 3.42.82 6.65 2.27 9.5l7-4.38z"/>
+                      <path fill="#34A853" d="M24 46.5c6.45 0 11.87-2.14 15.83-5.82l-7.42-5.77C30.35 36.64 27.3 37.9 24 37.9c-5.03 0-11.05-5.51-13.28-10.62l-7.42 5.78C6.99 41.64 14.81 46.5 24 46.5z"/>
+                    </svg>
+                    Google
+                  </button>
+                  <div id="g_id_signin" className="hidden"></div>
+                </div>
+              </div>
+            </motion.form>
+          ) : (
+            <motion.form 
+              key="register"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              onSubmit={handleRegister} 
+              className="space-y-4"
+            >
+              <div className="space-y-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/50">
+                    <User size={18} />
+                  </div>
+                  <input 
+                    value={regUsername} 
+                    onChange={(e) => setRegUsername(e.target.value)} 
+                    placeholder="Tên đăng nhập" 
+                    className="w-full pl-10 pr-4 py-3 bg-surface border border-secondary rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-text" 
+                  />
+                </div>
+                {registerFieldErrors.ten_dang_nhap && <p className="text-danger text-xs ml-1">{registerFieldErrors.ten_dang_nhap}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/50">
+                    <Lock size={18} />
+                  </div>
+                  <input 
+                    value={regPassword} 
+                    onChange={(e) => setRegPassword(e.target.value)} 
+                    placeholder="Mật khẩu" 
+                    type="password" 
+                    className="w-full pl-10 pr-4 py-3 bg-surface border border-secondary rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-text" 
+                  />
+                </div>
+                {registerFieldErrors.mat_khau && <p className="text-danger text-xs ml-1">{registerFieldErrors.mat_khau}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/50">
+                    <User size={18} />
+                  </div>
+                  <input 
+                    value={hoTen} 
+                    onChange={(e) => setHoTen(e.target.value)} 
+                    placeholder="Họ tên" 
+                    className="w-full pl-10 pr-4 py-3 bg-surface border border-secondary rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-text" 
+                  />
+                </div>
+                {registerFieldErrors.ho_ten && <p className="text-danger text-xs ml-1">{registerFieldErrors.ho_ten}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/50">
+                    <Mail size={18} />
+                  </div>
+                  <input 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    placeholder="Email" 
+                    className="w-full pl-10 pr-4 py-3 bg-surface border border-secondary rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-text" 
+                  />
+                </div>
+                {(registerFieldErrors.email && (registerFieldErrors.email || '').toLowerCase().trim() !== 'tài khoản đã tồn tại') && (
+                  <p className="text-danger text-xs ml-1">{registerFieldErrors.email}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/50">
+                    <Phone size={18} />
+                  </div>
+                  <input 
+                    value={phone} 
+                    onChange={(e) => setPhone(e.target.value)} 
+                    placeholder="Số điện thoại" 
+                    className="w-full pl-10 pr-4 py-3 bg-surface border border-secondary rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-text" 
+                  />
+                </div>
+                {registerFieldErrors.so_dien_thoai && <p className="text-danger text-xs ml-1">{registerFieldErrors.so_dien_thoai}</p>}
+              </div>
+
+              {registerError && <p className="text-danger text-sm text-center font-medium">{registerError}</p>}
+              {registerSuccess && <p className="text-success text-sm text-center font-medium">{registerSuccess}</p>}
+              
+              <button 
+                type="submit" 
+                className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-sm flex justify-center items-center gap-2 mt-2"
+              >
+                <UserPlus size={20} />
+                {registerSuccess ? "Đăng ký thành công" : "Tạo tài khoản"}
+              </button>
+            </motion.form>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }
