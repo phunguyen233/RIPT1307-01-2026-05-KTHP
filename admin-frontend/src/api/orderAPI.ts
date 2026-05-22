@@ -7,6 +7,9 @@ export const orderAPI = {
   getOrders: async () => {
     const res = await axiosClient.get(
       endpoint
+  getMyOrders: async () => {
+    const res = await axiosClient.get(
+      `${endpoint}/my-orders`
     );
 
     return res.data;
@@ -68,6 +71,10 @@ export const orderAPI = {
   // Delete order
   deleteOrder: async (id: number) => {
     const res = await axiosClient.delete(
+  getOrderDetail: async (
+    id: number
+  ) => {
+    const res = await axiosClient.get(
       `${endpoint}/${id}`
     );
 
