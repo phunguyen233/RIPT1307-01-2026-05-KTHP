@@ -1,22 +1,24 @@
-router.get(
-  "/my-orders",
-  getMyOrders
-);
 const express = require("express");
 
 const {
   createOrder,
   getOrders,
-  getOrderById,
+  getOrderDetail,
   updateOrder,
   deleteOrder,
-} = require("../controllers/orderController");
+  getMyOrders,
+} = require("../controllers/orders");
 
 const router = express.Router();
 
+router.get(
+  "/my-orders",
+  getMyOrders
+);
+
 router.get("/", getOrders);
 
-router.get("/:id", getOrderById);
+router.get("/:id", getOrderDetail);
 
 router.post("/", createOrder);
 

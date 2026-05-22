@@ -1,7 +1,7 @@
 // File: backend/routes/categoryRoutes.js
 const express = require('express');
 const router = express.Router();
-const categoryController = require('../controllers/categoryController');
+const categoryController = require('../controllers/categories');
 
 router.get('/', categoryController.getCategories);
 router.post('/', categoryController.addCategory);

@@ -4,7 +4,7 @@ const router = express.Router();
 
 const {
   getCustomers,
-} = require("../controllers/customerController");
+} = require("../controllers/customers");
 
 router.get("/", getCustomers);
 
