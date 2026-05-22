@@ -8,62 +8,130 @@ import {
   useParams,
 } from "react-router-dom";
 
-import orderAPI from "../../../api/orderAPI";
-
-import OrderForm from "../../../components/orders/OrderForm";
+import adminOrderAPI from "../../../api/adminOrderAPI";
 
 const EditOrder = () => {
-  const { id } = useParams();
+  const { id } =
+    useParams();
 
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
-  const [order, setOrder] =
-    useState<any>(null);
+  const [form, setForm] =
+    useState({
+      customer_name: "",
 
-  useEffect(() => {
-    const fetchOrder = async () => {
+      total_amount: "",
+
+      status: "",
+    });
+
+  const handleChange = (
+    e: any
+  ) => {
+    setForm({
+      ...form,
+
+      [e.target.name]:
+        e.target.value,
+    });
+  };
+
+  const handleSubmit =
+    async (e: any) => {
+      e.preventDefault();
+
       try {
-        const data =
-          await orderAPI.getOrderById(
-            Number(id)
-          );
+        await adminOrderAPI.updateOrder(
+          Number(id),
 
-        setOrder(data.data);
+          {
+            ...form,
+
+            total_amount:
+              Number(
+                form.total_amount
+              ),
+          }
+        );
+
+        navigate(
+          "/admin/orders"
+        );
       } catch (error) {
         console.log(error);
       }
     };
 
-    fetchOrder();
-  }, [id]);
+  useEffect(() => {
+    // fake load
+    setForm({
+      customer_name:
+        "John Doe",
 
-  const handleUpdate = async (
-    data: any
-  ) => {
-    try {
-      await orderAPI.updateOrder(
-        Number(id),
-        data
-      );
+      total_amount:
+        "500",
 
-      navigate("/admin/orders");
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  if (!order) return <p>Loading...</p>;
+      status:
+        "pending",
+    });
+  }, []);
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">
+      <h1 className="text-3xl font-bold mb-6">
         Edit Order
       </h1>
 
-      <OrderForm
-        initialData={order}
-        onSubmit={handleUpdate}
-      />
+      <form
+        onSubmit={
+          handleSubmit
+        }
+        className="space-y-4"
+      >
+        <input
+          type="text"
+          name="customer_name"
+          value={
+            form.customer_name
+          }
+          onChange={
+            handleChange
+          }
+          className="border p-2 w-full"
+        />
+
+        <input
+          type="number"
+          name="total_amount"
+          value={
+            form.total_amount
+          }
+          onChange={
+            handleChange
+          }
+          className="border p-2 w-full"
+        />
+
+        <input
+          type="text"
+          name="status"
+          value={
+            form.status
+          }
+          onChange={
+            handleChange
+          }
+          className="border p-2 w-full"
+        />
+
+        <button
+          type="submit"
+          className="bg-yellow-500 text-white px-4 py-2 rounded"
+        >
+          Update
+        </button>
+      </form>
     </div>
   );
 };
