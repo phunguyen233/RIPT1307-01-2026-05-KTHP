@@ -1,207 +1,248 @@
-const db = require("../config/db");
+const pool = require("../config/db");
 
-// Get all orders
-const getMyOrders = async (
-  req,
-  res
-) => {
-  try {
-    const result =
-      await db.query(
-        `
-        SELECT *
-        FROM orders
-        ORDER BY id DESC
-        `
-      );
+//
+// SHOP
+//
 
-    res.json({
-      success: true,
+// Get my orders
+exports.getMyOrders =
+  async (req, res) => {
+    try {
+      const customerId =
+        req.user.id;
 
-const getOrders = async (req, res) => {
-  try {
-    const result = await db.query(
-      `
-        SELECT *
-        FROM orders
-        ORDER BY created_at DESC
-      `
-    );
+      const result =
+        await pool.query(
+          `
+          SELECT *
+          FROM orders
+          WHERE customer_id = $1
+          ORDER BY id DESC
+          `,
+          [customerId]
+        );
 
-    res.json({
-      success: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
+
+        data: result.rows,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+
+        message:
+          error.message,
+      });
+    }
+  };
 
 // Get order detail
-const getOrderById = async (
-  req,
-  res
-) => {
-  try {
-    const result =
-      await db.query(
+exports.getOrderDetail =
+  async (req, res) => {
+    try {
+      const { id } =
+        req.params;
+
+      const result =
+        await pool.query(
+          `
+          SELECT *
+          FROM orders
+          WHERE id = $1
+          `,
+          [id]
+        );
+
+      res.status(200).json({
+        success: true,
+
+        data:
+          result.rows[0],
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+
+        message:
+          error.message,
+      });
+    }
+  };
+
+// Create order
+exports.createOrder =
+  async (req, res) => {
+    try {
+      const {
+        customer_name,
+
+        total_amount,
+
+        status,
+      } = req.body;
+
+      const customerId =
+        req.user.id;
+
+      const result =
+        await pool.query(
+          `
+          INSERT INTO orders
+          (
+            customer_id,
+            customer_name,
+            total_amount,
+            status
+          )
+
+          VALUES ($1,$2,$3,$4)
+
+          RETURNING *
+          `,
+          [
+            customerId,
+
+            customer_name,
+
+            total_amount,
+
+            status ||
+              "pending",
+          ]
+        );
+
+      res.status(201).json({
+        success: true,
+
+        data:
+          result.rows[0],
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+
+        message:
+          error.message,
+      });
+    }
+  };
+
+//
+// ADMIN
+//
+
+// Get all orders
+exports.getOrders =
+  async (req, res) => {
+    try {
+      const result =
+        await pool.query(
+          `
+          SELECT *
+          FROM orders
+          ORDER BY id DESC
+          `
+        );
+
+      res.status(200).json({
+        success: true,
+
+        data: result.rows,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+
+        message:
+          error.message,
+      });
+    }
+  };
+
+// Update order
+exports.updateOrder =
+  async (req, res) => {
+    try {
+      const { id } =
+        req.params;
+
+      const {
+        customer_name,
+
+        total_amount,
+
+        status,
+      } = req.body;
+
+      const result =
+        await pool.query(
+          `
+          UPDATE orders
+
+          SET
+            customer_name = $1,
+            total_amount = $2,
+            status = $3
+
+          WHERE id = $4
+
+          RETURNING *
+          `,
+          [
+            customer_name,
+
+            total_amount,
+
+            status,
+
+            id,
+          ]
+        );
+
+      res.status(200).json({
+        success: true,
+
+        data:
+          result.rows[0],
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+
+        message:
+          error.message,
+      });
+    }
+  };
+
+// Delete order
+exports.deleteOrder =
+  async (req, res) => {
+    try {
+      const { id } =
+        req.params;
+
+      await pool.query(
         `
-        SELECT *
-        FROM orders
-        WHERE id = $1
-        `,
-        [req.params.id]
-      );
-
-    res.json({
-      success: true,
-
-    const result = await db.query(
-      `
-        SELECT *
-        FROM orders
-        WHERE id = $1
-      `,
-      [req.params.id]
-    );
-
-    res.json({
-      success: true,
-      data: result.rows[0],
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-module.exports = {
-  getMyOrders,
-  getOrderById,
-const createOrder = async (
-  req,
-  res
-) => {
-  try {
-    const {
-      customerName,
-      phone,
-      address,
-      status,
-      totalAmount,
-    } = req.body;
-
-    const result = await db.query(
-      `
-        INSERT INTO orders
-        (
-          customer_name,
-          phone,
-          address,
-          status,
-          total_amount
-        )
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING *
-      `,
-      [
-        customerName,
-        phone,
-        address,
-        status,
-        totalAmount,
-      ]
-    );
-
-    res.status(201).json({
-      success: true,
-      data: result.rows[0],
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-const updateOrder = async (
-  req,
-  res
-) => {
-  try {
-    const {
-      customerName,
-      phone,
-      address,
-      status,
-      totalAmount,
-    } = req.body;
-
-    const result = await db.query(
-      `
-        UPDATE orders
-        SET
-          customer_name = $1,
-          phone = $2,
-          address = $3,
-          status = $4,
-          total_amount = $5
-        WHERE id = $6
-        RETURNING *
-      `,
-      [
-        customerName,
-        phone,
-        address,
-        status,
-        totalAmount,
-        req.params.id,
-      ]
-    );
-
-    res.json({
-      success: true,
-      data: result.rows[0],
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-const deleteOrder = async (
-  req,
-  res
-) => {
-  try {
-    await db.query(
-      `
         DELETE FROM orders
         WHERE id = $1
-      `,
-      [req.params.id]
-    );
+        `,
+        [id]
+      );
 
-    res.json({
-      success: true,
-      message:
-        "Delete successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
 
-module.exports = {
-  getOrders,
-  getOrderById,
-  createOrder,
-  updateOrder,
-  deleteOrder,
-};
+        message:
+          "Delete order successfully",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+
+        message:
+          error.message,
+      });
+    }
+  };
