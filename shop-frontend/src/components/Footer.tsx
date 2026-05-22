@@ -17,14 +17,14 @@ const Footer = () => (
         <h4 className="font-bold text-surface text-lg mb-4">Liên Kết</h4>
         <ul className="space-y-2">
           <li><a href="#home" className="text-secondary/80 hover:text-warning transition-colors">Trang chủ</a></li>
-          <li><a href="#menu" className="text-secondary/80 hover:text-warning transition-colors">Thực đơn</a></li>
+          <li><a href="#menu" className="text-secondary/80 hover:text-warning transition-colors">Menu</a></li>
           <li><a href="#about" className="text-secondary/80 hover:text-warning transition-colors">Về chúng tôi</a></li>
         </ul>
       </div>
       <div>
         <h4 className="font-bold text-surface text-lg mb-4">Liên Hệ</h4>
         <ul className="space-y-2 text-secondary/80">
-          <li>📍 123 Đường Cà Phê, Quận 1, TP.HCM</li>
+          <li>📍 543 Vũ Tông Phan</li>
           <li>📞 0123 456 789</li>
           <li>✉️ hello@coffeeco.vn</li>
         </ul>

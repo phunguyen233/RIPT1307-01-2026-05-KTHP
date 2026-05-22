@@ -27,7 +27,7 @@ const Hero = () => {
                 <ChevronRight className="w-5 h-5" />
               </button>
               <button className="bg-secondary text-primary px-8 py-4 rounded-full font-medium hover:bg-secondary/80 transition-all">
-                Xem thực đơn
+                Xem Menu
               </button>
             </div>
           </motion.div>

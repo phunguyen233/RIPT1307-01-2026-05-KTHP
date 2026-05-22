@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Auth from './pages/Auth';
 import HomePage from './pages/HomePage';
 import Products from './pages/Products';
+import ProductDetails from './pages/ProductDetails';
 
 function App() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
@@ -36,6 +37,12 @@ function App() {
         <Route
           path="/products"
           element={<Products onLogout={handleLogout} />} 
+        />
+
+        {/* TRANG CHI TIẾT SẢN PHẨM */}
+        <Route
+          path="/products/details/:id"
+          element={<ProductDetails onLogout={handleLogout} />} 
         />
         
         {/* NẾU KHÁCH GÕ LINK BẬY BẠ: Đẩy về trang chủ cho an toàn */}

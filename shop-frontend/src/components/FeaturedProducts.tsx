@@ -1,6 +1,7 @@
   import React, { useEffect, useState } from 'react';
   import { motion } from 'framer-motion';
   import { ShoppingBag } from 'lucide-react';
+  import { Link } from 'react-router-dom';
   import shopApiClient from '../api/shopApiClient';
 
   interface Product {
@@ -60,9 +61,9 @@
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {products.map((product, index) => (
-                <motion.div 
-                  key={product.id}
-                  initial={{ opacity: 0, y: 20 }}
+                <Link to={`/products/details/${product.id}${window.location.search}`} key={product.id} className="block group">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
@@ -90,12 +91,13 @@
                     </div>
                   </div>
                 </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
+};
 
-  export default FeaturedProducts;
+export default FeaturedProducts;

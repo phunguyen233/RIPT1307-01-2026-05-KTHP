@@ -87,6 +87,29 @@ const getProducts = async (req, res) => {
     }
 };
 
+// GET /:id: Lấy chi tiết sản phẩm theo id
+const getProductById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = `
+            SELECT p.*, c.name as category_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.id = $1
+        `;
+        const result = await pool.query(query, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+        }
+
+        res.status(200).json({ data: result.rows[0] });
+    } catch (error) {
+        console.error('Error fetching product by id:', error);
+        res.status(500).json({ message: 'Lỗi khi lấy chi tiết sản phẩm', error: error.message });
+    }
+};
+
 // POST /: Thêm sản phẩm mới.
 const addProduct = async (req, res) => {
     try {
@@ -173,6 +196,7 @@ const deleteProduct = async (req, res) => {
 
 module.exports = {
     getProducts,
+    getProductById,
     addProduct,
     updateProduct,
     deleteProduct

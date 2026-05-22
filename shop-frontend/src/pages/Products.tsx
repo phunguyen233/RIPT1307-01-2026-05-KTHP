@@ -143,7 +143,7 @@ const Products = ({ onLogout }: ProductsProps) => {
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
                 {filteredProducts.map((product) => (
-                  <div key={product.id} className="group cursor-pointer">
+                  <Link to={`/products/details/${product.id}${window.location.search}`} key={product.id} className="group cursor-pointer block">
                     <div className="h-64 w-full overflow-hidden bg-secondary/50 mb-4 rounded-xl relative">
                       {product.image_url ? (
                         <img 
@@ -173,7 +173,7 @@ const Products = ({ onLogout }: ProductsProps) => {
                         {formatPrice(product.price)}
                       </p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
