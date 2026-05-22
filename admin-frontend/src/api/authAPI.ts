@@ -22,4 +22,8 @@ export const authAPI = {
   },
 };
 
+<<<<<<< HEAD
 export default authAPI;
+=======
+export default authAPI;
+>>>>>>> origin/Hiep/final
