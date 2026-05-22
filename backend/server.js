@@ -1,91 +1,85 @@
 const express = require('express');
+const cors = require('cors');
 require('dotenv').config();
 
-// Import routes
+// ============ 1. IMPORT ROUTES ============
 const userRoutes = require('./routes/users');
+const categoryRoutes = require('./routes/categoryRoutes');
+const productRoutes = require('./routes/productRoutes');
 
-// Initialize express app
 const app = express();
 
-// ============ MIDDLEWARE ============
+// ============ 2. MIDDLEWARE (BẮT BUỘC PHẢI Ở TRÊN CÙNG) ============
 
-// Body parser middleware
+// Cấu hình CORS
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true,
+  methods: 'GET,POST,PUT,DELETE,OPTIONS,PATCH',
+  allowedHeaders: 'Origin,X-Requested-With,Content-Type,Accept,Authorization,X-API-Key'
+}));
+
+// Parse Body - Dùng bản built-in của Express (chuẩn và gọn nhất, không bị trùng)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// CORS middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,X-API-Key');
-  
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  
-  next();
-});
-
-// Request logging middleware (optional)
+// Log request để dễ debug
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// ============ ROUTES ============
+// ============ 3. MAPPING ROUTES ============
 
-// Health check endpoint
+// Route test server
+app.get('/', (req, res) => {
+  res.send('🚀 Backend Server đã hợp nhất và đang hoạt động...');
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
 
-// User routes (registration, login)
+// Mapping chuẩn cho tất cả API
 app.use('/api/users', userRoutes);
-
-// Auth route alias for shop-frontend compatibility
-app.use('/api/auth', userRoutes);
 
 // Admin auth routes (redirect to users for compatibility)
 app.use('/api/admin', userRoutes);
+app.use('/categories', categoryRoutes);
+app.use('/products', productRoutes);
 
-// ============ ERROR HANDLING ============
+// ============ 4. ERROR HANDLING ============
 
-// 404 handler
+// Xử lý 404
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  res.status(404).json({ error: 'Route không tồn tại!' });
 });
 
-// Global error handler
+// Xử lý lỗi hệ thống 500
 app.use((err, req, res, next) => {
-  console.error('[ERROR]', err.message);
-  console.error(err.stack);
-  
+  console.error('[SERVER ERROR]', err.message);
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal server error';
-  
   res.status(statusCode).json({ 
-    error: message,
+    error: err.message || 'Lỗi server nội bộ',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
-// ============ SERVER STARTUP ============
+// ============ 5. SERVER STARTUP ============
 
 const port = parseInt(process.env.PORT, 10) || 4000;
 
 app.listen(port, () => {
-  console.log(`🚀 Backend server is running on http://localhost:${port}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️  Database: ${process.env.DB_HOST}`);
+  console.log(`\n==============================================`);
+  console.log(`🚀 Server chạy tại: http://localhost:${port}`);
+  console.log(`📂 Danh sách API: /categories, /products, /api/users`);
+  console.log(`==============================================\n`);
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
 });
 
-// Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
   process.exit(1);
