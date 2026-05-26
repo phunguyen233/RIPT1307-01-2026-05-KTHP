@@ -25,7 +25,7 @@ export default function Header() {
 
   const handleLogout = () => {
     setToken(null);
-    navigate("/login");
+    navigate("/auth");
   };
 
   // Hàm xử lý khi bấm nút "Xem cửa hàng"

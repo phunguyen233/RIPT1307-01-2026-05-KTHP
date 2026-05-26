@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import Breadcrumbs from "../components/Breadcrumbs";
 import PaymentModal from "../components/paymentModal";
 import { API_KEY } from "../api/shopApiClient";
 import customersAPI from "../api/customersAPI";
@@ -127,6 +128,7 @@ export default function Cart() {
 
   return (
     <div className="p-6">
+      <Breadcrumbs />
       <h1 className="text-2xl font-semibold mb-4">Giỏ hàng</h1>
       {cart.length === 0 ? (
         <p>Giỏ hàng của bạn đang trống.</p>

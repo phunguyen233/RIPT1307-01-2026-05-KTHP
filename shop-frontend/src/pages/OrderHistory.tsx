@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import Breadcrumbs from "../components/Breadcrumbs";
 import ordersAPI from "../api/ordersAPI";
 import customersAPI from "../api/customersAPI";
 import { API_KEY } from "../api/shopApiClient";
@@ -82,6 +83,7 @@ export default function OrderHistory() {
 
   return (
     <div className="p-6">
+      <Breadcrumbs />
       <h1 className="text-2xl font-semibold mb-4">Đơn hàng của bạn</h1>
       {!isAuth && (
         <div className="p-6 bg-yellow-50 border-l-4 border-yellow-300 text-yellow-800 rounded mb-4">Đăng nhập để thấy đơn hàng của bạn</div>

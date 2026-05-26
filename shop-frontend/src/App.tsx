@@ -1,49 +1,44 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import Auth from './pages/Auth';
-import HomePage from './pages/HomePage';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import './App.css';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetails from './pages/ProductDetails';
-import Cart from './pages/Cart';
-import OrderHistory from './pages/OrderHistory';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Branches from './pages/Branches';
-import './App.css';
+import Cart from './pages/Cart';
+import Auth from './pages/Auth';
+import OrderHistory from './pages/OrderHistory';
 
 function App() {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-
-  useEffect(() => {
-    const handleAuthChange = () => setToken(localStorage.getItem('token'));
-    window.addEventListener('authChange', handleAuthChange);
-    window.addEventListener('storage', handleAuthChange);
-    return () => {
-      window.removeEventListener('authChange', handleAuthChange);
-      window.removeEventListener('storage', handleAuthChange);
-    };
-  }, []);
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setToken(null);
+    window.location.replace('/');
   };
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/" element={<HomePage onLogout={handleLogout} />} />
-        <Route path="/products" element={<Products onLogout={handleLogout} />} />
-        <Route path="/product/:id" element={<ProductDetails onLogout={handleLogout} />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/orders" element={<OrderHistory />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/branches" element={<Branches />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <div className="App min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/products" element={<Products onLogout={handleLogout} />} />
+            <Route path="/products/details/:id" element={<ProductDetails />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/branches" element={<Branches />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/orders-history" element={<OrderHistory />} />
+            <Route path="/auth/*" element={<Auth />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
     </BrowserRouter>
   );
 }

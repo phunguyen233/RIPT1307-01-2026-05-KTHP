@@ -1,32 +1,36 @@
-import axiosClient from "./axiosClient";
-
-const endpoint = "/inventory-imports";
+import axios from "./axiosClient";
+import { InventoryImport } from "../types";
 
 export const inventoryImportAPI = {
-  getAll: async (): Promise<any[]> => {
-    const res = await axiosClient.get(endpoint);
+  getAll: async (): Promise<InventoryImport[]> => {
+    const res = await axios.get("/inventory-imports");
     return res.data;
   },
 
-  getById: async (id: number): Promise<any> => {
-    const res = await axiosClient.get(`${endpoint}/${id}`);
+  getById: async (id: number): Promise<InventoryImport> => {
+    const res = await axios.get(`/inventory-imports/${id}`);
     return res.data;
   },
 
-  create: async (payload: any): Promise<any> => {
-    const res = await axiosClient.post(endpoint, payload);
+  getByIngredient: async (ingredientId: number): Promise<InventoryImport[]> => {
+    const res = await axios.get(`/inventory-imports?ingredient_id=${ingredientId}`);
     return res.data;
   },
 
-  update: async (id: number, payload: any): Promise<any> => {
-    const res = await axiosClient.put(`${endpoint}/${id}`, payload);
+  create: async (payload: { ingredient_id: number; quantity: number; unit_id: number; import_price: number }): Promise<InventoryImport> => {
+    const res = await axios.post("/inventory-imports", payload);
     return res.data;
   },
 
-  delete: async (id: number): Promise<any> => {
-    const res = await axiosClient.delete(`${endpoint}/${id}`);
+  update: async (id: number, payload: any): Promise<InventoryImport> => {
+    const res = await axios.put(`/inventory-imports/${id}`, payload);
     return res.data;
   },
+
+  delete: async (id: number) => {
+    const res = await axios.delete(`/inventory-imports/${id}`);
+    return res.data;
+  }
 };
 
 export default inventoryImportAPI;

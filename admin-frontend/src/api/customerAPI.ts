@@ -1,33 +1,27 @@
 import axiosClient from "./axiosClient";
+import type { Customer } from "../types/Customer";
 
-const endpoint = "/customers";
+export type { Customer };
 
 export const customerAPI = {
-  // Backwards-compatible name used across pages
-  getCustomers: async () => {
-    const res = await axiosClient.get(endpoint);
+  getAll: async (): Promise<Customer[]> => {
+    const res = await axiosClient.get("/customers");
     return res.data;
   },
-
-  // Common API names expected by pages
-  getAll: async () => {
-    return await (customerAPI.getCustomers() as Promise<any>);
-  },
-
-  create: async (payload: any) => {
-    const res = await axiosClient.post(endpoint, payload);
+  create: async (data: Customer) => {
+    const res = await axiosClient.post("/customers", data);
     return res.data;
   },
-
-  update: async (id: number, payload: any) => {
-    const res = await axiosClient.put(`${endpoint}/${id}`, payload);
+  update: async (id: number, data: Customer) => {
+    const res = await axiosClient.put(`/customers/${id}`, data);
     return res.data;
   },
-
   delete: async (id: number) => {
-    const res = await axiosClient.delete(`${endpoint}/${id}`);
+    const res = await axiosClient.delete(`/customers/${id}`);
     return res.data;
   },
+  getOrders: async (id: number) => {
+    const res = await axiosClient.get(`/customers/${id}/orders`);
+    return res.data;
+  }
 };
-
-export default customerAPI;

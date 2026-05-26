@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import { useParams } from 'react-router-dom';
 import shopApiClient from '../api/shopApiClient';
-import { Home, ChevronRight, ShoppingCart, Minus, Plus } from 'lucide-react';
-
-type ProductDetailsProps = {
-  onLogout: () => void;
-};
+import Breadcrumbs from '../components/Breadcrumbs';
+import { ShoppingCart, Minus, Plus } from 'lucide-react';
 
 interface Product {
   id: number;
@@ -19,7 +14,7 @@ interface Product {
   category_name?: string;
 }
 
-const ProductDetails = ({ onLogout }: ProductDetailsProps) => {
+const ProductDetails = () => {
   const { id } = useParams<{ id: string }>();
   const [userName, setUserName] = useState<string | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
@@ -76,7 +71,6 @@ const ProductDetails = ({ onLogout }: ProductDetailsProps) => {
 
   return (
     <div className="min-h-screen flex flex-col font-primary bg-surface selection:bg-warning/30 selection:text-primary">
-      <Navbar onLogout={onLogout} userName={userName} />
       
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-8">
         {loading ? (
@@ -89,19 +83,7 @@ const ProductDetails = ({ onLogout }: ProductDetailsProps) => {
           </div>
         ) : (
           <>
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm text-text/60 mb-10">
-              <Link to={`/${window.location.search}`} className="flex items-center gap-1 hover:text-danger transition-colors">
-                <Home className="w-4 h-4" />
-                <span className="font-semibold text-text">Trang chủ</span>
-              </Link>
-              <ChevronRight className="w-4 h-4" />
-              <Link to={`/products${window.location.search}`} className="hover:text-danger transition-colors">
-                Sản phẩm
-              </Link>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-text font-semibold">{product.name}</span>
-            </div>
+            <Breadcrumbs currentName={product?.name || undefined} />
 
             {/* Product Top Section */}
             <div className="flex flex-col md:flex-row gap-12 lg:gap-20 mb-20">
@@ -246,8 +228,6 @@ const ProductDetails = ({ onLogout }: ProductDetailsProps) => {
           </>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 };

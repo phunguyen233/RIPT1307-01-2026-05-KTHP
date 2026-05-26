@@ -1,11 +1,15 @@
-// File: backend/routes/categoryRoutes.js
 const express = require('express');
 const router = express.Router();
-const categoryController = require('../controllers/categories');
+const categoriesController = require('../controllers/categories');
+const { verifyToken, verifyTokenOrApiKey } = require('../middleware/authMiddleware');
 
-router.get('/', categoryController.getCategories);
-router.post('/', categoryController.addCategory);
-router.put('/:id', categoryController.updateCategory); // API Sửa
-router.delete('/:id', categoryController.deleteCategory); // API Xoá
+// Public routes (accessible with API key or token)
+router.get('/', verifyTokenOrApiKey, categoriesController.getAllCategories);
+router.get('/:id', verifyTokenOrApiKey, categoriesController.getCategoryById);
+
+// Protected routes (require token)
+router.post('/', verifyToken, categoriesController.createCategory);
+router.put('/:id', verifyToken, categoriesController.updateCategory);
+router.delete('/:id', verifyToken, categoriesController.deleteCategory);
 
 module.exports = router;

@@ -10,7 +10,7 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     try { setToken(null); localStorage.removeItem("user"); } catch { }
-    navigate('/login');
+    navigate('/auth');
   };
 
   const menuItems: MenuProps['items'] = [

@@ -16,19 +16,18 @@ cloudinary.config({
  */
 exports.uploadImage = async (fileBase64, fileName) => {
   try {
-    // Remove data:image/...; base64, prefix if present
-    const base64Data = fileBase64.includes('base64,')
-      ? fileBase64.split('base64,')[1]
-      : fileBase64;
+    const fileData = fileBase64.trim();
+    const dataUriMatch = fileData.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+    const uploadData = dataUriMatch
+      ? fileData
+      : `data:image/jpeg;base64,${fileData}`;
 
-    const result = await cloudinary.uploader.upload(
-      `data:image/jpeg;base64,${base64Data}`,
-      {
-        folder: 'bepam-shop-products',
-        public_id: `${Date.now()}-${fileName}`,
-        overwrite: true,
-      }
-    );
+    const result = await cloudinary.uploader.upload(uploadData, {
+      folder: 'bepam-shop-products',
+      public_id: `${Date.now()}-${fileName}`,
+      overwrite: true,
+      resource_type: 'image',
+    });
 
     return {
       success: true,

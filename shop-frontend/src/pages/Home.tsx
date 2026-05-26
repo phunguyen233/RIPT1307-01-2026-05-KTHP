@@ -111,20 +111,18 @@ export default function Home() {
     <div className="w-full">
       {/* SLIDER */}
       <div className="relative w-full h-[70vh] md:h-[80vh] overflow-hidden rounded-b-3xl shadow-lg">
-        <AnimatePresence custom={direction}>
+        <AnimatePresence mode="wait">
           <motion.img
             key={index}
             src={images[index]}
+            alt="Slide"
+            className="absolute w-full h-full object-cover"
             custom={direction}
             variants={variants}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{
-              duration: 0.6,
-              ease: "easeInOut",
-            }}
-            className="absolute w-full h-full object-cover"
+            transition={{ duration: 0.8, ease: "easeInOut" }}
           />
         </AnimatePresence>
 

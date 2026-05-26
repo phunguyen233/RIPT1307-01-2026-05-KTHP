@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Input, Select, Space, message, InputNumber } from "antd";
-import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
 import { Ingredient } from "../types";
 import { ingredientAPI } from "../api/ingredientAPI";
 import { inventoryImportAPI } from "../api/inventoryImportAPI";
@@ -26,6 +26,10 @@ const Inventory: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleReloadPage = async () => {
+    await fetchData();
+  };
 
   const columns = [
     {
@@ -180,17 +184,22 @@ const Inventory: React.FC = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Quản lý nhập kho</h2>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setFormData({ ingredient_id: 0, quantity: "", unit_id: 0, import_price: "" });
-            setError("");
-            setShowModal(true);
-          }}
-        >
-          Nhập kho
-        </Button>
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={handleReloadPage}>
+            Tải lại
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setFormData({ ingredient_id: 0, quantity: "", unit_id: 0, import_price: "" });
+              setError("");
+              setShowModal(true);
+            }}
+          >
+            Nhập kho
+          </Button>
+        </Space>
       </div>
 
       <Table

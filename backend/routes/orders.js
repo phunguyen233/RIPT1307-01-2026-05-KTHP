@@ -1,29 +1,15 @@
-const express = require("express");
-
-const {
-  createOrder,
-  getOrders,
-  getOrderDetail,
-  updateOrder,
-  deleteOrder,
-  getMyOrders,
-} = require("../controllers/orders");
-
+const express = require('express');
 const router = express.Router();
+const ordersController = require('../controllers/orders');
+const { verifyTokenOrApiKey } = require('../middleware/authMiddleware');
 
-router.get(
-  "/my-orders",
-  getMyOrders
-);
-
-router.get("/", getOrders);
-
-router.get("/:id", getOrderDetail);
-
-router.post("/", createOrder);
-
-router.put("/:id", updateOrder);
-
-router.delete("/:id", deleteOrder);
+// Public routes (accessible with API key or token)
+router.get('/', verifyTokenOrApiKey, ordersController.getAllOrders);
+router.get('/:id', verifyTokenOrApiKey, ordersController.getOrderById);
+router.post('/', verifyTokenOrApiKey, ordersController.createOrder);
+router.put('/:id', verifyTokenOrApiKey, ordersController.updateOrder);
+router.put('/:id/status', verifyTokenOrApiKey, ordersController.updateOrderStatus);
+router.delete('/:id', verifyTokenOrApiKey, ordersController.deleteOrder);
+router.post('/:id/process', verifyTokenOrApiKey, ordersController.processOrder);
 
 module.exports = router;

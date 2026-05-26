@@ -1,9 +1,12 @@
 import React from "react";
-import { motion } from "framer-motion";
+import Breadcrumbs from "../components/Breadcrumbs";
 
 export default function AboutPage() {
   return (
     <div className="w-full flex flex-col items-center text-[#0a2c1f]">
+      <div className="w-full max-w-6xl px-6 py-8">
+        <Breadcrumbs />
+      </div>
       {/* HERO */}
       <section className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-10 py-16 px-6">
         <div className="rounded-3xl overflow-hidden shadow-lg">

@@ -1,193 +1,218 @@
-import React, { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import shopApiClient from '../api/shopApiClient';
-import { Home, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Breadcrumbs from "../components/Breadcrumbs";
+import { Product } from "../types/Product";
+import { resolveImageUrl } from "../api/imageHelper";
+import productsAPI from "../api/productsAPI";
+import { API_KEY } from "../api/shopApiClient";
 
 type ProductsProps = {
-  onLogout: () => void;
+  onLogout?: () => void;
 };
 
-interface Category {
-  id: number;
-  name: string;
-}
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  image_url: string;
-  description: string;
-  category_id: number;
-}
-
-const Products = ({ onLogout }: ProductsProps) => {
-  const [userName, setUserName] = useState<string | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+export default function Products({ onLogout }: ProductsProps) {
+  const navigate = useNavigate();
+  void onLogout;
   const [products, setProducts] = useState<Product[]>([]);
-  const [activeCategory, setActiveCategory] = useState<number | 'all'>('all');
+  const [query, setQuery] = useState<string>("");
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [pressedButton, setPressedButton] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        setUserName(user.ho_ten || user.name || user.ten_dang_nhap || null);
-      } catch {
-        setUserName(null);
-      }
+    if (!API_KEY) {
+      setError("Chưa cấu hình API Key. Vui lòng thêm REACT_APP_SHOP_API_KEY vào file .env");
+      return;
     }
 
-    const fetchData = async () => {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlShopId = urlParams.get('shop_id');
-        
-        let catUrl = '/categories';
-        let prodUrl = '/products';
-        
-        if (urlShopId) {
-          catUrl += `?shop_id=${urlShopId}`;
-          prodUrl += `?shop_id=${urlShopId}`;
-        }
-
-        const [catRes, prodRes] = await Promise.all([
-          shopApiClient.get(catUrl),
-          shopApiClient.get(prodUrl)
-        ]);
-        
-        setCategories(catRes.data.data || catRes.data || []);
-        setProducts(prodRes.data.data || prodRes.data || []);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    productsAPI.getAll()
+      .then((res) => {
+        const mapped: Product[] = (res || []).map((row: any) => ({
+          id: row.id,
+          ten_san_pham: row.name,
+          gia_ban: row.price,
+          so_luong_ton: row.stock_quantity || 0,
+          hinh_anh: row.image_url,
+          mo_ta: row.description,
+          hien_thi: row.is_active,
+        }));
+        setProducts(mapped);
+      })
+      .catch((err) => {
+        console.error("Lỗi khi lấy sản phẩm:", err);
+        setError("Không thể kết nối shop. Vui lòng kiểm tra API Key.");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const filteredProducts = activeCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category_id === activeCategory);
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('vi-VN').format(price) + ' đ';
+  const handleAddToCart = (product: Product) => {
+    try {
+      // Prevent adding if product is hidden (admin can hide)
+      if (!product.hien_thi) {
+        alert('Sản phẩm hiện không có sẵn để đặt (đang ẩn).');
+        return;
+      }
+      const raw = localStorage.getItem("cart");
+      const cart: Array<any> = raw ? JSON.parse(raw) : [];
+      const existing = cart.find((c) => c.id === product.id);
+      if (existing) {
+        const nextQty = (existing.quantity || 1) + 1;
+        existing.quantity = nextQty;
+      } else {
+        cart.push({ ...product, quantity: 1 });
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+      alert(`${product.ten_san_pham} đã được thêm vào giỏ hàng`);
+    } catch (err) {
+      console.error("Lỗi khi thêm vào giỏ hàng:", err);
+    }
   };
 
+  // details view removed — single-button product cards
+  const filteredProducts = products.filter((p) => {
+    const search = query.trim().toLowerCase();
+    if (!search) return true;
+    const name = (p.ten_san_pham || "").toLowerCase();
+    return name.includes(search);
+  });
+
+  if (error) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen flex flex-col items-center justify-center">
+        <div className="text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-4 text-red-600">Lỗi kết nối</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-600 border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col font-primary bg-surface selection:bg-warning/30 selection:text-primary">
-      <Navbar onLogout={onLogout} userName={userName} />
-      
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-text/60 mb-10">
-          <Link to={`/${window.location.search}`} className="flex items-center gap-1 hover:text-danger transition-colors">
-            <Home className="w-4 h-4" />
-            <span className="font-semibold text-text">Trang chủ</span>
-          </Link>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-text/60">Sản phẩm</span>
-        </div>
+    <>
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <Breadcrumbs />
+      <div className="mb-8 flex items-center justify-center" style={{ marginTop: 24 }}>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Tìm sản phẩm..."
+          className="p-4 border border-gray-300 shadow-lg text-sm w-full max-w-xl rounded-full"
+          aria-label="Tìm sản phẩm"
+        />
+      </div>
 
-        <div className="flex flex-col md:flex-row gap-10">
-          {/* Sidebar */}
-          <div className="w-full md:w-64 flex-shrink-0">
-            <h2 className="text-lg font-bold text-text uppercase tracking-wider mb-6 inline-block border-b-2 border-danger pb-1">
-              Loại sản phẩm
-            </h2>
-            <ul className="flex flex-col">
-              <li>
-                <button
-                  onClick={() => setActiveCategory('all')}
-                  className={`w-full text-left py-3 border-b border-secondary transition-colors ${
-                    activeCategory === 'all' 
-                      ? 'font-bold text-text' 
-                      : 'text-text/70 hover:text-danger'
-                  }`}
-                >
-                  Tất cả
-                </button>
-              </li>
-              {categories.map((cat) => (
-                <li key={cat.id}>
+      <div className="grid gap-4 justify-items-center grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+        {filteredProducts.length === 0 ? (
+          <div className="col-span-full text-center py-20 text-gray-500">
+            Không tìm thấy sản phẩm phù hợp.
+          </div>
+        ) : filteredProducts.map((p) => (
+          <div key={p.id} className="p-2 w-full max-w-xs">
+            <div
+              onMouseEnter={() => setHoveredId(p.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              className="bg-white rounded-2xl shadow-sm overflow-hidden transition border border-gray-200"
+              style={{
+                padding: 20,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                transform: hoveredId === p.id ? "translateY(-6px)" : "none",
+                boxShadow: hoveredId === p.id ? "0px 10px 20px rgba(0,0,0,0.12)" : undefined,
+                transition: "transform 150ms ease, box-shadow 250ms ease",
+              }}
+            >
+              {/* Image (square 1:1) */}
+              <div
+                className="w-full mb-2 overflow-hidden rounded-xl"
+                style={{ position: "relative", width: "100%", paddingTop: "100%", }}
+              >
+                <img
+                  src={resolveImageUrl(p.hinh_anh)}
+                  alt={p.ten_san_pham}
+                  onError={(e: any) => {
+                    e.currentTarget.src = "/placeholder.png";
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    borderRadius: 20,
+                  }}
+                />
+              </div>
+
+              {/* Info under the image */}
+              <div className="text-center px-2">
+                <h2 className="font-semibold text-lg mb-1 truncate">{p.ten_san_pham}</h2>
+                <p className="text-green-600 font-bold mb-3">{Number(p.gia_ban).toLocaleString()}đ</p>
+              </div>
+
+              {/* Buttons row: left is Add-to-cart or 'Hết hàng' when out of stock; right is always 'Chi tiết' */}
+              <div className="px-2 mt-3 flex gap-3 w-full">
+                {/* Left button: either active add-to-cart or disabled "Hết hàng" */}
+                {(!p.hien_thi) ? (
                   <button
-                    onClick={() => setActiveCategory(cat.id)}
-                    className={`w-full text-left py-3 border-b border-secondary transition-colors ${
-                      activeCategory === cat.id 
-                        ? 'font-bold text-text' 
-                        : 'text-text/70 hover:text-danger'
-                    }`}
+                    type="button"
+                    disabled
+                    className="flex-1 bg-gray-300 text-white py-3.5 rounded-2xl cursor-not-allowed select-none"
                   >
-                    {cat.name}
+                    Không khả dụng
                   </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleAddToCart(p)}
+                    onMouseDown={() => setPressedButton(`${p.id}-add`)}
+                    onMouseUp={() => setPressedButton(null)}
+                    onMouseLeave={() => setPressedButton(null)}
+                    onTouchStart={() => setPressedButton(`${p.id}-add`)}
+                    onTouchEnd={() => setPressedButton(null)}
+                    className={`
+                      flex-1 py-3.5 text-[15px] font-medium text-white rounded-2xl
+                      transition-all duration-150 shadow-sm
+                      ${pressedButton === `${p.id}-add`
+                        ? "bg-green-800 scale-95"
+                        : "bg-green-600 hover:bg-green-700 active:bg-green-800"}
+                    `}
+                  >
+                    Thêm giỏ hàng
+                  </button>
+                )}
 
-          {/* Main Content */}
-          <div className="flex-grow">
-            <h2 className="text-2xl font-bold text-text uppercase tracking-wider mb-8">
-              Danh sách sản phẩm
-            </h2>
-            
-            {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-danger"></div>
+                {/* Right button: always show product details */}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/products/details/${p.id}${window.location.search}`)}
+                  className="
+                    flex-1 py-3.5 text-[15px] font-medium rounded-2xl 
+                    bg-white border border-gray-300 text-gray-700 
+                    hover:bg-gray-50 active:bg-gray-200 
+                    transition-all duration-150
+                  "
+                >
+                  Chi tiết
+                </button>
               </div>
-            ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-                {filteredProducts.map((product) => (
-                  <Link to={`/products/details/${product.id}${window.location.search}`} key={product.id} className="group cursor-pointer block">
-                    <div className="h-64 w-full overflow-hidden bg-secondary/50 mb-4 rounded-xl relative">
-                      {product.image_url ? (
-                        <img 
-                          src={product.image_url} 
-                          alt={product.name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => {
-                            // Nếu ảnh lỗi, ẩn đi hoặc hiển thị một div trống
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            const parent = (e.target as HTMLImageElement).parentElement;
-                            if (parent) {
-                               parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-text/30 bg-secondary/30">Không có ảnh</div>';
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-text/30 bg-secondary/30">
-                          Không có ảnh
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-center">
-                      <h3 className="text-sm font-semibold text-text group-hover:text-danger transition-colors mb-1">
-                        {product.name}
-                      </h3>
-                      <p className="text-sm font-bold text-text">
-                        {formatPrice(product.price)}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16 text-text/50">
-                Không tìm thấy sản phẩm nào trong danh mục này.
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
 
-      <Footer />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
+    </>
   );
-};
-
-export default Products;
+}

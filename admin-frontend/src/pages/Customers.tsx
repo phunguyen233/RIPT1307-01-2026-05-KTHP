@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Input, Space, message } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import customerAPI from "../api/customerAPI";
-import { Customer } from "../types/Customer";
+import { EditOutlined, DeleteOutlined, PlusOutlined, ReloadOutlined } from "@ant-design/icons";
+import { customerAPI, Customer } from "../api/customerAPI";
 
 const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -28,6 +27,10 @@ const Customers: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReloadPage = async () => {
+    await fetchCustomers();
   };
 
   useEffect(() => {
@@ -207,13 +210,18 @@ const Customers: React.FC = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Quản lý khách hàng</h2>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleAddClick}
-        >
-          Thêm khách hàng
-        </Button>
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={handleReloadPage}>
+            Tải lại
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleAddClick}
+          >
+            Thêm khách hàng
+          </Button>
+        </Space>
       </div>
 
       <div style={{ marginBottom: 16 }}>

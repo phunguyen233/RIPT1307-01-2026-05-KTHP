@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Input, Select, message, InputNumber, Space } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
 import { productAPI } from "../api/productAPI";
 import { Product } from "../types/Product";
 import { ingredientAPI, Ingredient } from "../api/ingredientAPI";
@@ -51,6 +51,10 @@ const Recipes = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleReloadPage = async () => {
+    await fetchData();
+  };
 
   const getUnitById = (id?: number) => {
     return units.find(u => u.id === id);
@@ -391,9 +395,14 @@ const Recipes = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Quản lý công thức</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openAddRecipeModal}>
-          Thêm công thức
-        </Button>
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={handleReloadPage}>
+            Tải lại
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openAddRecipeModal}>
+            Thêm công thức
+          </Button>
+        </Space>
       </div>
 
       <Table
@@ -427,7 +436,7 @@ const Recipes = () => {
             loading={recipeSaving}
             onClick={saveRecipe}
           >
-            💾 Lưu công thức
+            Lưu công thức
           </Button>,
         ]}
         width={800}
@@ -612,4 +621,3 @@ const Recipes = () => {
 };
 
 export default Recipes;
- 

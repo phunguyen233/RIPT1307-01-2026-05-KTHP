@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Input, Select, InputNumber, message, Space } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { Ingredient } from "../types";
 import { ingredientAPI } from "../api/ingredientAPI";
-import { receiptAPI, InventoryImport } from "../api/receiptAPI";
+import { receiptAPI } from "../api/receiptAPI";
+import type { InventoryImport as InventoryImportType } from "../api/receiptAPI";
 import { unitAPI, Unit } from "../api/unitAPI";
 
 const InventoryImport: React.FC = () => {
-  const [imports, setImports] = useState<InventoryImport[]>([]);
+  const [imports, setImports] = useState<InventoryImportType[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [search, setSearch] = useState("");
@@ -26,6 +27,10 @@ const InventoryImport: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleReloadPage = async () => {
+    await fetchData();
+  };
 
   const fetchData = async () => {
     try {
@@ -135,7 +140,7 @@ const InventoryImport: React.FC = () => {
     {
       title: "Thành tiền",
       key: "total",
-      render: (_: any, record: InventoryImport) => `${formatCurrency(record.quantity * record.import_price)}đ`,
+      render: (_: any, record: InventoryImportType) => `${formatCurrency(record.quantity * record.import_price)}đ`,
     },
     {
       title: "Ngày nhập",
@@ -149,6 +154,11 @@ const InventoryImport: React.FC = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>📦 Nhập kho nguyên liệu</h2>
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={handleReloadPage}>
+            Tải lại
+          </Button>
+        </Space>
       </div>
 
       {success && (

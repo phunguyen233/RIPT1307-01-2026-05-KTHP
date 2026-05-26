@@ -1,67 +1,66 @@
 import axiosClient from "./axiosClient";
-import { Order as OrderType } from "../types/order";
+
+export interface OrderItem {
+  id?: number;
+  order_id?: number;
+  product_id: number;
+  quantity: number;
+  price: number;
+  name?: string;
+}
+
+export interface Order {
+  id?: number;
+  order_code?: string;
+  customer_id?: number;
+  shop_id?: number;
+  shipping_address?: string;
+  total_price?: number;
+  status?: 'pending' | 'completed' | 'cancelled';
+  created_at?: string;
+  order_items?: OrderItem[];
+  items?: OrderItem[]; // for backward compatibility
+  customer_name?: string;
+  customer_phone?: string;
+}
 
 const endpoint = "/orders";
 
-export const adminOrderAPI = {
-  getOrders: async (): Promise<any[]> => {
+export const orderAPI = {
+  getAll: async (): Promise<Order[]> => {
     const res = await axiosClient.get(endpoint);
     return res.data;
   },
-
-  getAll: async (): Promise<any[]> => {
-    return await adminOrderAPI.getOrders();
-  },
-
-  getById: async (id: number): Promise<any> => {
+  getById: async (id: number): Promise<Order> => {
     const res = await axiosClient.get(`${endpoint}/${id}`);
     return res.data;
   },
-
-  create: async (payload: any): Promise<any> => {
+  create: async (payload: { customer_id: number | null; shipping_address: string; total_price: number; status?: string; order_items: { product_id: number; quantity: number; price: number }[] }) => {
     const res = await axiosClient.post(endpoint, payload);
     return res.data;
   },
-
-  createOrder: async (payload: any): Promise<any> => {
-    return await adminOrderAPI.create(payload);
-  },
-
-  updateOrder: async (id: number, payload: any): Promise<any> => {
-    const res = await axiosClient.put(`${endpoint}/${id}`, payload);
+  search: async (q: string) => {
+    const res = await axiosClient.get(`${endpoint}/search`, { params: { q } });
     return res.data;
   },
-
-  updateStatus: async (id: number, status: string): Promise<any> => {
-    return await adminOrderAPI.updateOrder(id, { status });
-  },
-
-  delete: async (id: number): Promise<any> => {
+  delete: async (id: number) => {
     const res = await axiosClient.delete(`${endpoint}/${id}`);
     return res.data;
   },
-
-  search: async (query: string): Promise<any[]> => {
-    const all = await adminOrderAPI.getOrders();
-    if (!query || !query.trim()) return all;
-    const normalized = query.trim().toLowerCase();
-    return all.filter((order: any) => {
-      return [
-        order.order_code,
-        order.customer_name,
-        order.customer_phone,
-        order.shipping_address,
-        order.status,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalized));
-    });
+  updateStatus: async (id: number, trang_thai: string, tien_ship?: number, packagedItems?: any[], voucherType?: 'amount' | 'percent', voucherValue?: number) => {
+    const url = `${endpoint}/${id}/status`;
+    const payload: any = { trang_thai };
+    if (typeof tien_ship === 'number') payload.tien_ship = tien_ship;
+    if (Array.isArray(packagedItems) && packagedItems.length > 0) payload.packaged_items = packagedItems;
+    if (voucherType && typeof voucherValue !== 'undefined') {
+      // prefer explicit type+value; backend will compute so_tien_giam
+      payload.voucher_type = voucherType;
+      payload.voucher_value = voucherValue;
+    }
+    console.debug('orderAPI.updateStatus ->', url, payload);
+    const res = await axiosClient.put(url, payload);
+    return res.data;
   },
 };
-
-export type Order = OrderType;
-
-// Provide a normalized named export `orderAPI` for pages that import it
-export const orderAPI = adminOrderAPI;
 
 export default orderAPI;

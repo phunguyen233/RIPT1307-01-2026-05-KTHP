@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Input, Select, Space, message, DatePicker, InputNumber, Tag } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, EyeOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, ReloadOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import { orderAPI, Order } from "../api/orderAPI";
 import { productAPI } from "../api/productAPI";
@@ -81,6 +81,10 @@ const Orders = () => {
         } catch (err) {
             console.error('Lỗi khi lấy sản phẩm', err);
         }
+    };
+
+    const handleReloadPage = async () => {
+        await Promise.all([fetchOrders(), fetchCustomers(), fetchProducts()]);
     };
 
     const handleSearch = async () => {
@@ -385,13 +389,18 @@ const Orders = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Quản lý đơn hàng</h2>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={openAddModal}
-                >
-                    Thêm đơn hàng
-                </Button>
+                <Space>
+                    <Button icon={<ReloadOutlined />} onClick={handleReloadPage}>
+                        Tải lại
+                    </Button>
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={openAddModal}
+                    >
+                        Thêm đơn hàng
+                    </Button>
+                </Space>
             </div>
 
             <div style={{ marginBottom: 16, display: 'flex', gap: 16 }}>
