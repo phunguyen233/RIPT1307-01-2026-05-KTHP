@@ -1,26 +1,18 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Form, Input, Button, Card, Tabs, message, Spin } from "antd";
+import { UserOutlined, LockOutlined, ShopOutlined, MailOutlined } from "@ant-design/icons";
 import authAPI from "../api/authAPI";
 import { useAuth } from "../contexts/AuthContext";
 
+type TabKey = "login" | "register";
+
 const Auth: React.FC = () => {
-  // Mode: 'login' or 'register'
-  const [mode, setMode] = useState<"login" | "register">("login");
-
-  // Login fields
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-
-  // Register fields
-  const [regName, setRegName] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regPassword, setRegPassword] = useState("");
-  const [regConfirmPassword, setRegConfirmPassword] = useState("");
-  const [regShopName, setRegShopName] = useState("");
-  const [regShopEmail, setRegShopEmail] = useState("");
-  const [regError, setRegError] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [mode, setMode] = useState<TabKey>("login");
+  const [loginForm] = Form.useForm();
+  const [registerForm] = Form.useForm();
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,31 +20,13 @@ const Auth: React.FC = () => {
 
   const from = (location.state as any)?.from?.pathname || "/dashboard";
 
-  // Validate email format
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-
-    if (!email || !password) {
-      setLoginError("Email và mật khẩu là bắt buộc");
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setLoginError("Email không hợp lệ");
-      return;
-    }
-
+  const handleLogin = async (values: any) => {
+    setLoginLoading(true);
     try {
-      const res = await authAPI.login({ email, password });
+      const res = await authAPI.login({ email: values.email, password: values.password });
 
       if (res.user.role !== "admin") {
-        setLoginError("Chỉ admin được phép đăng nhập tại đây");
+        message.error("Chỉ admin được phép đăng nhập tại đây");
         return;
       }
 
@@ -61,55 +35,33 @@ const Auth: React.FC = () => {
         localStorage.setItem("user", JSON.stringify(res.user));
         localStorage.setItem("shop_id", res.user.shop_id);
         localStorage.setItem("api_key", res.user.api_key || "");
-
+        message.success("Đăng nhập thành công!");
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      setLoginError(err?.response?.data?.error || "Email hoặc mật khẩu bị sai");
+      message.error(err?.response?.data?.error || "Email hoặc mật khẩu bị sai");
+    } finally {
+      setLoginLoading(false);
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setRegError("");
-
-    if (!regName || !regEmail || !regPassword || !regShopName) {
-      setRegError("Vui lòng điền đầy đủ thông tin (bao gồm tên cửa hàng)");
+  const handleRegister = async (values: any) => {
+    if (values.password !== values.confirmPassword) {
+      message.error("Mật khẩu không khớp");
       return;
     }
 
-    if (!validateEmail(regEmail)) {
-      setRegError("Email không hợp lệ");
-      return;
-    }
-
-    if (regShopEmail && !validateEmail(regShopEmail)) {
-      setRegError("Email cửa hàng không hợp lệ");
-      return;
-    }
-
-    if (regPassword.length < 6) {
-      setRegError("Mật khẩu phải có ít nhất 6 ký tự");
-      return;
-    }
-
-    if (regPassword !== regConfirmPassword) {
-      setRegError("Mật khẩu không khớp");
-      return;
-    }
-
-    setIsRegistering(true);
+    setRegisterLoading(true);
     try {
       const res = await authAPI.registerAdmin({
-        name: regName,
-        email: regEmail,
-        password: regPassword,
-        shop_name: regShopName,
-        shop_email: regShopEmail || undefined,
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        shop_name: values.shopName,
+        shop_email: values.shopEmail || undefined,
       });
 
       if (res.user && res.token) {
-        // Store user and token
         setToken(res.token);
         localStorage.setItem("user", JSON.stringify(res.user));
         localStorage.setItem("shop_id", res.user.shop_id);
@@ -119,125 +71,133 @@ const Auth: React.FC = () => {
         if (res.shop?.name) {
           localStorage.setItem("shop_name", res.shop.name);
         }
-
-        // Navigate to dashboard
+        message.success("Đăng ký thành công!");
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      setRegError(err?.response?.data?.error || "Đăng ký thất bại");
+      message.error(err?.response?.data?.error || "Đăng ký thất bại");
     } finally {
-      setIsRegistering(false);
+      setRegisterLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      <div className="bg-card text-card-foreground shadow-md rounded-xl px-6 py-6 w-full max-w-md border border-border">
-        <h1 className="text-2xl font-bold text-center text-foreground">Hệ Thống Quản Lý Cửa Hàng</h1>
-        <p className="text-sm text-muted-foreground text-center mt-1">
-          {mode === "login" ? "Chỉ admin được phép đăng nhập" : "Tạo tài khoản admin mới"}
-        </p>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", backgroundColor: "#f0f2f5", padding: "24px" }}>
+      <Card
+        style={{ width: "100%", maxWidth: "450px" }}
+        title={<div style={{ textAlign: "center", fontSize: "24px", fontWeight: "bold" }}>Hệ Thống Quản Lý Cửa Hàng</div>}
+        bordered={false}
+      >
+        <Tabs
+          activeKey={mode}
+          onChange={(key) => setMode(key as TabKey)}
+          items={[
+            {
+              key: "login",
+              label: "Đăng nhập",
+              children: (
+                <Spin spinning={loginLoading}>
+                  <Form form={loginForm} layout="vertical" onFinish={handleLogin}>
+                    <Form.Item
+                      label="Email"
+                      name="email"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập email" },
+                        { type: "email", message: "Email không hợp lệ" },
+                      ]}
+                    >
+                      <Input prefix={<MailOutlined />} placeholder="Nhập email" size="large" />
+                    </Form.Item>
 
-        <div className="mt-4">
-          {mode === "login" ? (
-            <form onSubmit={handleLogin} className="space-y-3">
-              <input
-                className="border border-input bg-background text-foreground p-2 w-full rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                placeholder="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <input
-                className="border border-input bg-background text-foreground p-2 w-full rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                type="password"
-                placeholder="Mật khẩu"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <div>
-                {loginError && <p className="text-destructive text-sm mb-2 text-center">{loginError}</p>}
-                <button
-                  type="submit"
-                  className="w-full py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white border border-transparent transition shadow-sm"
-                >
-                  Đăng nhập
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleRegister} className="space-y-3">
-              <input
-                className="border border-input bg-background text-foreground p-2 w-full rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                placeholder="Họ và tên *"
-                value={regName}
-                onChange={(e) => setRegName(e.target.value)}
-              />
-              <input
-                className="border border-input bg-background text-foreground p-2 w-full rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                placeholder="Email cá nhân *"
-                type="email"
-                value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)}
-              />
-              <input
-                className="border border-input bg-background text-foreground p-2 w-full rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                type="password"
-                placeholder="Mật khẩu *"
-                value={regPassword}
-                onChange={(e) => setRegPassword(e.target.value)}
-              />
-              <input
-                className="border border-input bg-background text-foreground p-2 w-full rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                type="password"
-                placeholder="Xác nhận mật khẩu *"
-                value={regConfirmPassword}
-                onChange={(e) => setRegConfirmPassword(e.target.value)}
-              />
-              <input
-                className="border border-input bg-background text-foreground p-2 w-full rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                placeholder="Tên cửa hàng *"
-                value={regShopName}
-                onChange={(e) => setRegShopName(e.target.value)}
-              />
-              <input
-                className="border border-input bg-background text-foreground p-2 w-full rounded-md focus:ring-2 focus:ring-black focus:outline-none"
-                placeholder="Email cửa hàng (tùy chọn)"
-                type="email"
-                value={regShopEmail}
-                onChange={(e) => setRegShopEmail(e.target.value)}
-              />
-              <div>
-                {regError && <p className="text-destructive text-sm mb-2 text-center">{regError}</p>}
-                <button
-                  type="submit"
-                  disabled={isRegistering}
-                  className="w-full py-2 rounded-md bg-green-600 hover:bg-green-700 text-white border border-transparent transition shadow-sm disabled:opacity-50"
-                >
-                  {isRegistering ? "Đang tạo..." : "Đăng ký"}
-                </button>
-              </div>
-            </form>
-          )}
+                    <Form.Item
+                      label="Mật khẩu"
+                      name="password"
+                      rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
+                    >
+                      <Input.Password prefix={<LockOutlined />} placeholder="Nhập mật khẩu" size="large" />
+                    </Form.Item>
 
-          <div className="mt-4 text-center">
-            <p className="text-xs text-muted-foreground">
-              {mode === "login" ? "Không có tài khoản? " : "Đã có tài khoản? "}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode(mode === "login" ? "register" : "login");
-                  setLoginError("");
-                  setRegError("");
-                }}
-                className="text-blue-600 hover:underline font-semibold"
-              >
-                {mode === "login" ? "Đăng ký" : "Đăng nhập"}
-              </button>
-            </p>
-          </div>
-        </div>
-      </div>
+                    <Form.Item>
+                      <Button type="primary" htmlType="submit" block size="large" loading={loginLoading}>
+                        Đăng nhập
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </Spin>
+              ),
+            },
+            {
+              key: "register",
+              label: "Đăng ký",
+              children: (
+                <Spin spinning={registerLoading}>
+                  <Form form={registerForm} layout="vertical" onFinish={handleRegister}>
+                    <Form.Item
+                      label="Họ và tên"
+                      name="name"
+                      rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}
+                    >
+                      <Input prefix={<UserOutlined />} placeholder="Nhập họ tên" size="large" />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Email"
+                      name="email"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập email" },
+                        { type: "email", message: "Email không hợp lệ" },
+                      ]}
+                    >
+                      <Input prefix={<MailOutlined />} placeholder="Nhập email" size="large" />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Tên cửa hàng"
+                      name="shopName"
+                      rules={[{ required: true, message: "Vui lòng nhập tên cửa hàng" }]}
+                    >
+                      <Input prefix={<ShopOutlined />} placeholder="Nhập tên cửa hàng" size="large" />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Email cửa hàng (tùy chọn)"
+                      name="shopEmail"
+                      rules={[{ type: "email", message: "Email không hợp lệ" }]}
+                    >
+                      <Input prefix={<MailOutlined />} placeholder="Nhập email cửa hàng" size="large" />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Mật khẩu"
+                      name="password"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập mật khẩu" },
+                        { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự" },
+                      ]}
+                    >
+                      <Input.Password prefix={<LockOutlined />} placeholder="Nhập mật khẩu" size="large" />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Xác nhận mật khẩu"
+                      name="confirmPassword"
+                      rules={[{ required: true, message: "Vui lòng xác nhận mật khẩu" }]}
+                    >
+                      <Input.Password prefix={<LockOutlined />} placeholder="Xác nhận mật khẩu" size="large" />
+                    </Form.Item>
+
+                    <Form.Item>
+                      <Button type="primary" htmlType="submit" block size="large" loading={registerLoading}>
+                        Đăng ký
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </Spin>
+              ),
+            },
+          ]}
+        />
+      </Card>
     </div>
   );
 };
