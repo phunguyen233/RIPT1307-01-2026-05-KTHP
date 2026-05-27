@@ -71,6 +71,7 @@ export default function Products({ onLogout }: ProductsProps) {
         cart.push({ ...product, quantity: 1 });
       }
       localStorage.setItem("cart", JSON.stringify(cart));
+      try { window.dispatchEvent(new Event('cartChange')); } catch {}
       alert(`${product.ten_san_pham} đã được thêm vào giỏ hàng`);
     } catch (err) {
       console.error("Lỗi khi thêm vào giỏ hàng:", err);

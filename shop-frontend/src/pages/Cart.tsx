@@ -19,6 +19,7 @@ export default function Cart() {
   const save = (next: any) => {
     setCart(next);
     localStorage.setItem("cart", JSON.stringify(next));
+    try { window.dispatchEvent(new Event('cartChange')); } catch {}
   };
 
   const inc = (id: any) => {

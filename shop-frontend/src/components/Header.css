@@ -29,14 +29,32 @@
   display:flex;
   gap:18px;
   align-items:center;
+  position:relative;
 }
 .nav-link{
   color:#374151;
   text-decoration:none;
   font-weight:500;
+  padding:8px 0;
 }
 .nav-link:hover{
   color:#16a34a; /* green-600 */
+}
+.nav-link-active{
+  color:#16a34a;
+}
+.nav-underline{
+  position:absolute;
+  bottom:0;
+  height:2px;
+  background:#16a34a;
+  border-radius:999px;
+  transition:left 220ms ease, width 220ms ease, opacity 200ms ease;
+  pointer-events:none;
+}
+.mobile-nav-link-active{
+  color:#16a34a;
+  font-weight:700;
 }
 .header-right{
   display:flex;
@@ -49,8 +67,31 @@
   cursor:pointer;
   color:#374151;
   padding:6px;
+  position: relative;
 }
 .icon-btn:hover{ color:#16a34a }
+
+.cart-btn {
+  position: relative;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #dc2626;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  line-height: 1;
+}
 
 .header-left:hover .header-name{ color:#16a34a }
 

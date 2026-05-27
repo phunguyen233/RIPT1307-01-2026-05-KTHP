@@ -135,53 +135,172 @@ exports.deleteOrder = async (req, res, next) => {
   }
 };
 
+// Helper function to get conversion path from unit A to unit B
+const getConversionFactor = async (client, fromUnitId, toUnitId) => {
+  if (fromUnitId === toUnitId) return 1; // Same unit, no conversion needed
+
+  // Fetch both units with their base unit info
+  const unitsResult = await client.query(
+    `SELECT id, base_unit_id, conversion_factor, type
+     FROM units
+     WHERE id = $1 OR id = $2`,
+    [fromUnitId, toUnitId]
+  );
+
+  const units = {};
+  for (const unit of unitsResult.rows) {
+    units[unit.id] = unit;
+  }
+
+  if (!units[fromUnitId] || !units[toUnitId]) {
+    throw new Error(`Unit not found: ${fromUnitId} or ${toUnitId}`);
+  }
+
+  // Check if units have the same type
+  if (units[fromUnitId].type !== units[toUnitId].type) {
+    throw new Error(`Incompatible units: cannot convert ${units[fromUnitId].type} to ${units[toUnitId].type}`);
+  }
+
+  // Find base unit for fromUnit
+  let fromBaseId = fromUnitId;
+  const fromChain = [fromBaseId];
+  while (units[fromBaseId] && units[fromBaseId].base_unit_id) {
+    fromBaseId = units[fromBaseId].base_unit_id;
+    fromChain.push(fromBaseId);
+  }
+
+  // Find base unit for toUnit
+  let toBaseId = toUnitId;
+  const toChain = [toBaseId];
+  while (units[toBaseId] && units[toBaseId].base_unit_id) {
+    toBaseId = units[toBaseId].base_unit_id;
+    toChain.push(toBaseId);
+  }
+
+  // They must have the same base unit
+  if (fromBaseId !== toBaseId) {
+    throw new Error(`Cannot convert: different base units`);
+  }
+
+  // Calculate conversion factor
+  // Convert from 'fromUnit' to base unit, then from base unit to 'toUnit'
+  let factor = 1;
+  
+  // Convert from fromUnit to base (multiply by conversion_factor)
+  for (let i = 0; i < fromChain.length - 1; i++) {
+    const u = units[fromChain[i]];
+    factor *= u.conversion_factor;
+  }
+
+  // Convert from base to toUnit (divide by conversion_factor)
+  for (let i = 0; i < toChain.length - 1; i++) {
+    const u = units[toChain[i]];
+    factor /= u.conversion_factor;
+  }
+
+  return factor;
+};
+
 const deductIngredientsForOrder = async (client, orderId, shop_id, orderCode) => {
-  const consumptionResult = await client.query(
-    `SELECT ri.ingredient_id,
+  // Get all order items with recipe and ingredient details
+  const itemsResult = await client.query(
+    `SELECT oi.id AS order_item_id,
+            oi.quantity AS order_quantity,
+            oi.product_id,
+            ri.ingredient_id,
+            ri.quantity AS recipe_quantity,
+            ri.unit_id AS recipe_unit_id,
             i.name AS ingredient_name,
-            SUM(oi.quantity * ri.quantity) AS needed_quantity,
-            i.stock_quantity
+            i.stock_quantity,
+            i.unit_id AS ingredient_unit_id
      FROM order_items oi
-     JOIN products p ON oi.product_id = p.id
+     JOIN products p ON oi.product_id = p.id AND p.shop_id = $2
      JOIN recipes r ON r.product_id = p.id
      JOIN recipe_ingredients ri ON ri.recipe_id = r.id
      JOIN ingredients i ON ri.ingredient_id = i.id AND i.shop_id = $2
-     WHERE oi.order_id = $1 AND p.shop_id = $2
-     GROUP BY ri.ingredient_id, i.name, i.stock_quantity`,
+     WHERE oi.order_id = $1`,
     [orderId, shop_id]
   );
 
-  const insufficient = consumptionResult.rows.filter(
-    (row) => Number(row.stock_quantity) < Number(row.needed_quantity)
-  );
-
-  if (insufficient.length > 0) {
-    return {
-      insufficient: insufficient.map((row) => ({
-        ingredient_id: row.ingredient_id,
+  // Group by ingredient to get total needed
+  const ingredientMap = {};
+  for (const row of itemsResult.rows) {
+    const ingredientId = row.ingredient_id;
+    if (!ingredientMap[ingredientId]) {
+      ingredientMap[ingredientId] = {
+        ingredient_id: ingredientId,
         ingredient_name: row.ingredient_name,
-        needed_quantity: Number(row.needed_quantity),
         stock_quantity: Number(row.stock_quantity),
-      })),
-    };
+        ingredient_unit_id: row.ingredient_unit_id,
+        items: [],
+      };
+    }
+    ingredientMap[ingredientId].items.push(row);
   }
 
-  for (const row of consumptionResult.rows) {
-    const neededQuantity = Number(row.needed_quantity);
-    if (neededQuantity <= 0) continue;
+  // Calculate needed quantity for each ingredient with unit conversion
+  const insufficient = [];
+  const deductions = []; // Array to store deductions to apply
+
+  for (const ingredientId in ingredientMap) {
+    const ing = ingredientMap[ingredientId];
+    let totalNeeded = 0;
+
+    // Calculate total needed quantity (converting recipe unit to ingredient unit)
+    for (const item of ing.items) {
+      try {
+        const factor = await getConversionFactor(
+          client,
+          item.recipe_unit_id,
+          item.ingredient_unit_id
+        );
+        const neededForThisItem = item.order_quantity * item.recipe_quantity * factor;
+        totalNeeded += neededForThisItem;
+      } catch (error) {
+        console.error(`Unit conversion error for ingredient ${ingredientId}:`, error.message);
+        // If conversion fails, try direct comparison (assume same unit or error)
+        totalNeeded += item.order_quantity * item.recipe_quantity;
+      }
+    }
+
+    // Check if sufficient
+    if (ing.stock_quantity < totalNeeded) {
+      insufficient.push({
+        ingredient_id: ingredientId,
+        ingredient_name: ing.ingredient_name,
+        needed_quantity: totalNeeded,
+        stock_quantity: ing.stock_quantity,
+      });
+    } else {
+      deductions.push({
+        ingredient_id: ingredientId,
+        ingredient_name: ing.ingredient_name,
+        quantity_to_deduct: totalNeeded,
+      });
+    }
+  }
+
+  if (insufficient.length > 0) {
+    return { insufficient };
+  }
+
+  // Apply deductions
+  for (const deduction of deductions) {
+    const quantityToDeduct = deduction.quantity_to_deduct;
+    if (quantityToDeduct <= 0) continue;
 
     await client.query(
       'UPDATE ingredients SET stock_quantity = stock_quantity - $1 WHERE id = $2 AND shop_id = $3',
-      [neededQuantity, row.ingredient_id, shop_id]
+      [quantityToDeduct, deduction.ingredient_id, shop_id]
     );
 
     await client.query(
       `INSERT INTO inventory_logs (ingredient_id, change_type, quantity, note, shop_id)
        VALUES ($1, $2, $3, $4, $5)`,
       [
-        row.ingredient_id,
+        deduction.ingredient_id,
         'export',
-        neededQuantity,
+        quantityToDeduct,
         `Trừ kho do hoàn thành đơn hàng ${orderCode}`,
         shop_id,
       ]

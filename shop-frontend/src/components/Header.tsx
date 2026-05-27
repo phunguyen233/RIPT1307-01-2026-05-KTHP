@@ -1,18 +1,42 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import logo from "../logobepmam.jpg";
 import "./Header.css";
 
+const navItems = [
+  { to: "/", label: "Trang chủ", end: true },
+  { to: "/products", label: "Sản phẩm", end: false },
+  { to: "/about", label: "Giới thiệu", end: true },
+  { to: "/contact", label: "Liên hệ", end: true },
+  { to: "/branches", label: "Chi nhánh", end: true },
+];
+
 export default function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<any>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [underline, setUnderline] = useState({ left: 0, width: 0, opacity: 0 });
+  const navRef = useRef<Record<string, HTMLAnchorElement | null>>({});
 
   useEffect(() => {
     const raw = localStorage.getItem("user");
     setUser(raw ? JSON.parse(raw) : null);
+
+    const getCartCount = () => {
+      try {
+        const raw = localStorage.getItem('cart');
+        const cart = raw ? JSON.parse(raw) : [];
+        return cart.reduce((s: number, c: any) => s + (c.quantity || 1), 0);
+      } catch {
+        return 0;
+      }
+    };
+
+    setCartCount(getCartCount());
 
     const storageHandler = () => {
       const r = localStorage.getItem("user");
@@ -27,9 +51,19 @@ export default function Header() {
 
     window.addEventListener("storage", storageHandler);
     window.addEventListener("authChange", authHandler as EventListener);
+    // listen for cart changes dispatched by other parts of the app
+    const cartHandler = () => setCartCount(() => {
+      try {
+        const raw = localStorage.getItem('cart');
+        const cart = raw ? JSON.parse(raw) : [];
+        return cart.reduce((s: number, c: any) => s + (c.quantity || 1), 0);
+      } catch { return 0; }
+    });
+    window.addEventListener('cartChange', cartHandler as EventListener);
     return () => {
       window.removeEventListener("storage", storageHandler);
       window.removeEventListener("authChange", authHandler as EventListener);
+      window.removeEventListener('cartChange', cartHandler as EventListener);
     };
   }, []);
 
@@ -61,6 +95,32 @@ export default function Header() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const updateUnderline = () => {
+      const activeItem = navItems.find((item) => {
+        if (item.end) {
+          return location.pathname === item.to;
+        }
+        return location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+      }) || navItems[0];
+
+      const currentLink = navRef.current[activeItem.to];
+      if (currentLink) {
+        setUnderline({
+          left: currentLink.offsetLeft,
+          width: currentLink.offsetWidth,
+          opacity: 1,
+        });
+      } else {
+        setUnderline((prev) => ({ ...prev, opacity: 0 }));
+      }
+    };
+
+    updateUnderline();
+    window.addEventListener('resize', updateUnderline);
+    return () => window.removeEventListener('resize', updateUnderline);
+  }, [location.pathname]);
+
   return (
     <header className="site-header">
       <div className="header-left" onClick={() => navigate('/')}>
@@ -69,11 +129,25 @@ export default function Header() {
       </div>
 
       <nav className="header-center">
-        <Link to="/" className="nav-link">Trang chủ</Link>
-        <Link to="/products" className="nav-link">Sản phẩm</Link>
-        <Link to="/about" className="nav-link">Giới thiệu</Link>
-        <Link to="/contact" className="nav-link">Liên hệ</Link>
-        <Link to="/branches" className="nav-link">Chi nhánh</Link>
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            ref={(el) => { navRef.current[item.to] = el; }}
+            className={({ isActive }) => (isActive ? 'nav-link nav-link-active' : 'nav-link')}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+        <span
+          className="nav-underline"
+          style={{
+            left: underline.left,
+            width: underline.width,
+            opacity: underline.opacity,
+          }}
+        />
       </nav>
 
       <div className="header-right">
@@ -82,12 +156,15 @@ export default function Header() {
             <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <button className="icon-btn" onClick={() => navigate('/cart')} title="Giỏ hàng">
+        <button className="icon-btn cart-btn" onClick={() => navigate('/cart')} title="Giỏ hàng">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 6H21L20 14H8L6 6Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="10" cy="19" r="1" fill="currentColor"/>
             <circle cx="18" cy="19" r="1" fill="currentColor"/>
           </svg>
+          {cartCount > 0 && (
+            <span className="cart-badge">{cartCount}</span>
+          )}
         </button>
 
         {user ? (
@@ -131,13 +208,16 @@ export default function Header() {
         <Link to="/orders-history" className="mobile-nav-link" onClick={() => setShowMenu(false)}>Đơn hàng</Link>
 
         <div className="border-t border-gray-100 mt-2 pt-2 mobile-top-row">
-          <Link to="/cart" className="mobile-nav-link icon-link" onClick={() => setShowMenu(false)}>
+          <Link to="/cart" className="mobile-nav-link icon-link cart-btn" onClick={() => setShowMenu(false)}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6 6H21L20 14H8L6 6Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <circle cx="10" cy="19" r="1" fill="currentColor"/>
               <circle cx="18" cy="19" r="1" fill="currentColor"/>
             </svg>
             <span>Giỏ hàng</span>
+            {cartCount > 0 && (
+              <span className="cart-badge">{cartCount}</span>
+            )}
           </Link>
 
           {user ? (
