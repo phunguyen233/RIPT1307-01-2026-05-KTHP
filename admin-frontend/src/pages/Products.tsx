@@ -32,6 +32,7 @@ export default function Products() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [categoriesError, setCategoriesError] = useState("");
+  const [form] = Form.useForm();
 
   // Lấy danh sách sản phẩm
   const fetchProducts = async () => {
@@ -74,7 +75,7 @@ export default function Products() {
   // ===== Product Functions =====
   const handleAddProductClick = () => {
     setEditingProductId(null);
-    setFormData({
+    const newForm = {
       name: "",
       price: 0,
       cost_price: 0,
@@ -82,7 +83,10 @@ export default function Products() {
       image_url: "",
       category_id: undefined,
       is_active: true,
-    });
+    };
+    setFormData(newForm as Product);
+    form.resetFields();
+    form.setFieldsValue(newForm);
     setPreview(null);
     setShowProductForm(true);
   };
@@ -90,6 +94,7 @@ export default function Products() {
   const handleEditProductClick = (product: Product) => {
     setEditingProductId(product.id || null);
     setFormData(product);
+    form.setFieldsValue(product);
     setPreview(product.image_url || null);
     setShowProductForm(true);
   };
@@ -296,25 +301,19 @@ export default function Products() {
         open={showProductForm}
         onCancel={() => setShowProductForm(false)}
         footer={null}
+        destroyOnClose
       >
-        <Form onFinish={handleProductSubmit} layout="vertical">
+        <Form form={form} onFinish={handleProductSubmit} layout="vertical" initialValues={formData}>
           <Form.Item
             label="Tên sản phẩm"
             name="name"
             rules={[{ required: true, message: 'Vui lòng nhập tên sản phẩm' }]}
           >
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
+            <Input />
           </Form.Item>
 
           <Form.Item label="Danh mục sản phẩm" name="category_id">
-            <Select
-              value={formData.category_id}
-              onChange={(value) => setFormData({ ...formData, category_id: value })}
-              loading={categoriesLoading}
-            >
+            <Select loading={categoriesLoading}>
               {categories.map((cat) => (
                 <Option key={cat.id} value={cat.id}>
                   {cat.name}
@@ -328,29 +327,18 @@ export default function Products() {
             name="price"
             rules={[{ required: true, message: 'Vui lòng nhập giá bán' }]}
           >
-            <Input
-              type="number"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-            />
+            <Input type="number" />
           </Form.Item>
 
           <Form.Item label="Giá vốn" name="cost_price">
-            <Input
-              type="number"
-              value={formData.cost_price}
-              onChange={(e) => setFormData({ ...formData, cost_price: Number(e.target.value) })}
-            />
+            <Input type="number" />
           </Form.Item>
 
           <Form.Item label="Mô tả" name="description">
-            <Input.TextArea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
+            <Input.TextArea />
           </Form.Item>
 
-          <Form.Item label="Upload ảnh sản phẩm" name="image">
+          <Form.Item label="Upload ảnh sản phẩm">
             <Upload
               listType="picture-card"
               className="avatar-uploader"
@@ -389,7 +377,7 @@ export default function Products() {
               }}
             >
               {preview || formData.image_url ? (
-                <img src={preview || formData.image_url} alt="avatar" style={{ width: '100%' }} />
+                <img src={preview || formData.image_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
               ) : (
                 <div>
                   <UploadOutlined />
@@ -399,13 +387,8 @@ export default function Products() {
             </Upload>
           </Form.Item>
 
-          <Form.Item label="Trạng thái" name="is_active">
-            <Switch
-              checked={formData.is_active !== false}
-              onChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              checkedChildren="Hoạt động"
-              unCheckedChildren="Ẩn"
-            />
+          <Form.Item label="Trạng thái" name="is_active" valuePropName="checked">
+            <Switch checkedChildren="Hoạt động" unCheckedChildren="Ẩn" />
           </Form.Item>
 
           <Form.Item>
