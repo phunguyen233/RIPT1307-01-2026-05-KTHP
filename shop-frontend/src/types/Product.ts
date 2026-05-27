@@ -6,4 +6,5 @@ export interface Product {
   hinh_anh: string;
   hien_thi: boolean;
   mo_ta?: string;
+  category_id?: number;
 }
