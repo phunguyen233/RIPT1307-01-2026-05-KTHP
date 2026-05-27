@@ -127,36 +127,124 @@ export default function Cart() {
   const [maDonHang, setMaDonHang] = useState<number | null>(null);
 
   return (
-    <div className="p-6">
-      <Breadcrumbs />
-      <h1 className="text-2xl font-semibold mb-4">Giỏ hàng</h1>
-      {cart.length === 0 ? (
-        <p>Giỏ hàng của bạn đang trống.</p>
-      ) : (
-        <div className="space-y-4">
-          {cart.map((c) => (
-            <div key={c.id} className="flex items-center gap-4 border p-3 rounded">
-              <img src={require('../api/imageHelper').resolveImageUrl(c.hinh_anh)} alt={c.ten_san_pham} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8 }} />
-              <div className="flex-1">
-                <div className="font-semibold">{c.ten_san_pham}</div>
-                <div className="text-green-600 font-bold">{Number(c.gia_ban || c.price || 0).toLocaleString()}đ</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => dec(c.id)} className="px-3 py-1 bg-gray-200 rounded">-</button>
-                <div className="px-3">{c.quantity || 1}</div>
-                <button onClick={() => inc(c.id)} className="px-3 py-1 bg-gray-200 rounded">+</button>
-              </div>
-              <button onClick={() => remove(c.id)} className="ml-4 text-red-600">✕</button>
+    <div className="p-4 md:p-8 bg-white min-h-screen">
+      <div className="max-w-5xl mx-auto">
+        <Breadcrumbs />
+        
+        <div className="mt-6">
+          {cart.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              Giỏ hàng của bạn đang trống.
             </div>
-          ))}
+          ) : (
+            <div>
+              {/* Desktop Table Header */}
+              <div className="hidden md:grid grid-cols-12 gap-4 border-b border-gray-200 pb-3 mb-3 text-[14px] font-bold text-gray-800 uppercase">
+                <div className="col-span-5">Sản phẩm</div>
+                <div className="col-span-2 text-center">Giá</div>
+                <div className="col-span-2 text-center">Số lượng</div>
+                <div className="col-span-2 text-center">Tổng</div>
+                <div className="col-span-1"></div>
+              </div>
 
-          <div className="text-right font-semibold">Tổng: {Number(total).toLocaleString()}đ</div>
+              {/* Cart Items */}
+              <div className="space-y-4 md:space-y-0">
+                {cart.map((c) => (
+                  <div key={c.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center border-b border-gray-100 pb-4 md:py-4">
+                    
+                    {/* Product Info */}
+                    <div className="col-span-1 md:col-span-5 flex items-center gap-4">
+                      <div className="w-16 h-16 shrink-0">
+                        <img 
+                          src={require('../api/imageHelper').resolveImageUrl(c.hinh_anh)} 
+                          alt={c.ten_san_pham} 
+                          className="w-full h-full object-cover rounded-md"
+                        />
+                      </div>
+                      <div className="font-semibold text-gray-800 text-[14px]">{c.ten_san_pham}</div>
+                    </div>
 
-          <div className="text-right">
-            <button onClick={() => setShowCheckout(true)} className="bg-blue-600 text-white px-6 py-2 rounded">Đặt hàng</button>
-          </div>
+                    {/* Price */}
+                    <div className="col-span-1 md:col-span-2 flex md:justify-center items-center">
+                      <span className="md:hidden text-gray-500 mr-2 text-sm">Giá:</span>
+                      <span className="text-green-600 font-bold text-[14px]">
+                        {Number(c.gia_ban || c.price || 0).toLocaleString()} ₫
+                      </span>
+                    </div>
+
+                    {/* Quantity */}
+                    <div className="col-span-1 md:col-span-2 flex md:justify-center items-center">
+                      <span className="md:hidden text-gray-500 mr-2 text-sm">Số lượng:</span>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => dec(c.id)} className="text-gray-500 hover:text-green-600 p-1 text-lg leading-none">-</button>
+                        <span className="text-[14px] font-medium w-4 text-center">{c.quantity || 1}</span>
+                        <button onClick={() => inc(c.id)} className="text-gray-500 hover:text-green-600 p-1 text-lg leading-none">+</button>
+                      </div>
+                    </div>
+
+                    {/* Total */}
+                    <div className="col-span-1 md:col-span-2 flex md:justify-center items-center">
+                      <span className="md:hidden text-gray-500 mr-2 text-sm">Tổng:</span>
+                      <span className="text-green-600 font-bold text-[14px]">
+                        {((c.quantity || 1) * Number(c.gia_ban || c.price || 0)).toLocaleString()} ₫
+                      </span>
+                    </div>
+
+                    {/* Remove Action */}
+                    <div className="col-span-1 md:col-span-1 flex md:justify-center items-center">
+                      <button 
+                        onClick={() => remove(c.id)} 
+                        className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-red-100 hover:text-red-600 transition-colors"
+                        title="Xóa"
+                      >
+                        <span className="text-sm">✕</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom Actions */}
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-3">
+                <button 
+                  onClick={() => navigate('/products')}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-[12px] font-bold uppercase px-5 py-2.5 rounded-md transition-colors"
+                >
+                  ← Tiếp tục mua hàng
+                </button>
+                <button 
+                  onClick={() => {
+                    const next = [...cart];
+                    save(next);
+                    alert("Giỏ hàng đã được cập nhật!");
+                  }}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-[12px] font-bold uppercase px-5 py-2.5 rounded-md transition-colors flex items-center gap-2"
+                >
+                  <span className="text-[15px] leading-none">↻</span> Cập nhật giỏ hàng
+                </button>
+              </div>
+
+              {/* Summary Box */}
+              <div className="mt-8 flex justify-end">
+                <div className="bg-gray-50 p-6 rounded-lg w-full md:w-[320px]">
+                  <h3 className="text-[15px] font-bold text-gray-800 uppercase mb-4">Tổng tiền</h3>
+                  <div className="flex justify-between items-center border-b border-gray-200 pb-3 mb-5">
+                    <span className="text-gray-800 text-sm font-medium">Tổng</span>
+                    <span className="text-green-600 font-bold text-[16px]">{Number(total).toLocaleString()} ₫</span>
+                  </div>
+                  <button 
+                    onClick={() => setShowCheckout(true)} 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold uppercase py-3 rounded-full transition-colors"
+                  >
+                    Thanh toán
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          )}
         </div>
-      )}
+      </div>
       {/* Checkout modal */}
       {showCheckout && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
