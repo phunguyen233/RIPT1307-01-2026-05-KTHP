@@ -45,7 +45,7 @@ export default function Auth() {
     }
 
     try {
-      const res = await shopApiClient.post("/auth/login", {
+      const res = await shopApiClient.post("/users/login", {
         ten_dang_nhap: username,
         mat_khau: password,
       });
@@ -87,7 +87,7 @@ export default function Auth() {
     }
 
     try {
-      await shopApiClient.post("/auth/register", {
+      await shopApiClient.post("/users/register", {
         name: hoTen,
         email,
         mat_khau: regPassword,

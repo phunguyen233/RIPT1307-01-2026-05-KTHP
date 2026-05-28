@@ -148,17 +148,9 @@ exports.register = async (req, res, next) => {
       [userName, email, hashedPassword, 'customer', resolvedShopId]
     );
 
-    // Tạo JWT token
-    const token = jwt.sign(
-      { id: result.rows[0].id, email: result.rows[0].email, role: result.rows[0].role, shop_id: resolvedShopId },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
     res.status(201).json({
       message: 'User registered successfully',
-      user: result.rows[0],
-      token
+      user: result.rows[0]
     });
   } catch (error) {
     next(error);
@@ -171,19 +163,36 @@ exports.login = async (req, res, next) => {
     const { email, ten_dang_nhap, mat_khau, password } = req.body;
     const identifier = email || ten_dang_nhap;
     const userPassword = password || mat_khau;
+    const apiKeyHeader = req.headers['x-api-key'] || req.headers['X-API-Key'];
 
     // Validate input
     if (!identifier || !userPassword) {
       return res.status(400).json({ error: 'Email/username and password are required' });
     }
 
-    // Tìm user theo email hoặc tên đăng nhập
-    const result = await db.query('SELECT * FROM users WHERE email = $1 OR name = $1', [identifier]);
+    if (!apiKeyHeader) {
+      return res.status(400).json({ error: 'Shop API key is required for login' });
+    }
+
+    const resolvedShopId = await getShopIdFromApiKey(apiKeyHeader);
+    if (!resolvedShopId) {
+      return res.status(401).json({ error: 'Invalid shop API key' });
+    }
+
+    // Tìm user theo email hoặc tên đăng nhập trong cùng shop
+    const result = await db.query(
+      'SELECT * FROM users WHERE (email = $1 OR name = $1) AND shop_id = $2',
+      [identifier, resolvedShopId]
+    );
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid credentials or wrong shop' });
     }
 
     const user = result.rows[0];
+
+    if (user.role !== 'customer') {
+      return res.status(403).json({ error: 'Only customer accounts can login here' });
+    }
 
     // Kiểm tra password
     const isPasswordValid = await bcrypt.compare(userPassword, user.password);
@@ -203,15 +212,6 @@ exports.login = async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
-    // Get shop info if user has shop_id
-    let shopInfo = null;
-    if (user.shop_id) {
-      const shopResult = await db.query('SELECT id, name, email, api_key FROM shops WHERE id = $1', [user.shop_id]);
-      if (shopResult.rows.length > 0) {
-        shopInfo = shopResult.rows[0];
-      }
-    }
-
     res.json({
       message: 'Login successful',
       user: {
@@ -220,7 +220,6 @@ exports.login = async (req, res, next) => {
         email: user.email,
         role: user.role,
         shop_id: user.shop_id,
-        api_key: shopInfo?.api_key || null,
         created_at: user.created_at
       },
       token
