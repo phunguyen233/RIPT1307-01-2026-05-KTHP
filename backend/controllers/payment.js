@@ -152,9 +152,15 @@ exports.checkout = async (req, res, next) => {
 
 exports.handleSePayWebhook = async (req, res, next) => {
   try {
-    const secret = req.headers['x-sepay-secret'] || req.body.secret || req.query.secret;
-    if (!secret || secret !== SEPAY_SECRET) {
-      return res.status(401).json({ error: 'Invalid SePay webhook secret' });
+    const signature = req.headers['x-sepay-signature'];
+    const rawBody = req.rawBody || JSON.stringify(req.body || {});
+    const hash = crypto
+      .createHmac('sha256', SEPAY_SECRET)
+      .update(rawBody)
+      .digest('hex');
+
+    if (!signature || signature !== hash) {
+      return res.status(401).json({ error: 'Invalid signature' });
     }
 
     const orderId = req.body.orderId || req.body.order_id || req.body.order_code || req.body.orderCode;

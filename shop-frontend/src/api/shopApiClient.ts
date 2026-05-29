@@ -3,7 +3,7 @@ import axios from "axios";
 // API key được cấu hình trong file .env hoặc biến môi trường
 // REACT_APP_SHOP_API_KEY=your_api_key_here
 export const API_KEY = process.env.REACT_APP_SHOP_API_KEY || "bepmam_51033565fd6c3177ab4cb7e0a723fb5e584b2b41b495542d7dcb5b460607a598";
-const API_BASE_URL = process.env.REACT_APP_SHOP_API_URL || "http://localhost:4000/api";
+const API_BASE_URL = process.env.REACT_APP_SHOP_API_URL || "https://bepmam-backend.onrender.com/api";
 
 const defaultHeaders: Record<string, string> = {
   "Content-Type": "application/json",
