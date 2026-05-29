@@ -1,16 +1,40 @@
 const db = require('../config/db');
 
+const getCustomerIdForUser = async (userId, shop_id) => {
+  const result = await db.query(
+    'SELECT id FROM customers WHERE user_id = $1 AND shop_id = $2 LIMIT 1',
+    [userId, shop_id]
+  );
+  return result.rows.length > 0 ? result.rows[0].id : null;
+};
+
 exports.getAllOrders = async (req, res, next) => {
   try {
     const shop_id = req.user.shop_id;
+    let query;
+    let values;
 
-    const query = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
-                   FROM orders o
-                   LEFT JOIN customers c ON o.customer_id = c.id
-                   WHERE o.shop_id = $1
-                   ORDER BY o.id`;
+    if (req.user.role === 'customer') {
+      const customerId = await getCustomerIdForUser(req.user.id, shop_id);
+      if (!customerId) {
+        return res.json([]);
+      }
+      query = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
+               FROM orders o
+               LEFT JOIN customers c ON o.customer_id = c.id
+               WHERE o.shop_id = $1 AND o.customer_id = $2
+               ORDER BY o.id`;
+      values = [shop_id, customerId];
+    } else {
+      query = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
+               FROM orders o
+               LEFT JOIN customers c ON o.customer_id = c.id
+               WHERE o.shop_id = $1
+               ORDER BY o.id`;
+      values = [shop_id];
+    }
 
-    const result = await db.query(query, [shop_id]);
+    const result = await db.query(query, values);
     res.json(result.rows);
   } catch (error) {
     next(error);
@@ -21,14 +45,28 @@ exports.getOrderById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const shop_id = req.user.shop_id;
+    let orderQuery;
+    let orderValues;
 
-    const orderResult = await db.query(
-      `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
-       FROM orders o
-       LEFT JOIN customers c ON o.customer_id = c.id
-       WHERE o.id = $1 AND o.shop_id = $2`,
-      [id, shop_id]
-    );
+    if (req.user.role === 'customer') {
+      const customerId = await getCustomerIdForUser(req.user.id, shop_id);
+      if (!customerId) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      orderQuery = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
+                    FROM orders o
+                    LEFT JOIN customers c ON o.customer_id = c.id
+                    WHERE o.id = $1 AND o.shop_id = $2 AND o.customer_id = $3`;
+      orderValues = [id, shop_id, customerId];
+    } else {
+      orderQuery = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
+                    FROM orders o
+                    LEFT JOIN customers c ON o.customer_id = c.id
+                    WHERE o.id = $1 AND o.shop_id = $2`;
+      orderValues = [id, shop_id];
+    }
+
+    const orderResult = await db.query(orderQuery, orderValues);
     if (orderResult.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
     }

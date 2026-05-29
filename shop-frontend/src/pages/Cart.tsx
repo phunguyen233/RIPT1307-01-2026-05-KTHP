@@ -67,32 +67,45 @@ export default function Cart() {
 
     try {
       let ma_khach_hang: number;
-      
+      const storedUser = localStorage.getItem('user');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      const currentUserId = currentUser?.id || null;
+
       // Create or find customer via API key
       try {
-        // Try to find existing customer by phone
         const customers = await customersAPI.getAll();
-        const existingCustomer = customers.find((c: any) => c.phone === checkoutPhone || c.so_dien_thoai === checkoutPhone);
-        
+        const existingCustomer = customers.find((c: any) =>
+          (currentUserId && c.user_id === currentUserId) ||
+          c.phone === checkoutPhone ||
+          c.so_dien_thoai === checkoutPhone
+        );
+
         if (existingCustomer) {
           ma_khach_hang = existingCustomer.id || existingCustomer.ma_khach_hang;
         } else {
-          // Create new customer
-          const newCustomer = await customersAPI.create({
+          // Create new customer with linked user_id when available
+          const customerPayload: any = {
             name: checkoutName,
             phone: checkoutPhone,
-            address: checkoutAddress
-          });
+            address: checkoutAddress,
+          };
+          if (currentUserId) {
+            customerPayload.user_id = currentUserId;
+          }
+          const newCustomer = await customersAPI.create(customerPayload);
           ma_khach_hang = newCustomer.id || newCustomer.ma_khach_hang;
         }
       } catch (customerErr) {
         console.error("Customer error:", customerErr);
-        // Try to create customer anyway
-        const newCustomer = await customersAPI.create({
+        const customerPayload: any = {
           name: checkoutName,
           phone: checkoutPhone,
-          address: checkoutAddress
-        });
+          address: checkoutAddress,
+        };
+        if (currentUserId) {
+          customerPayload.user_id = currentUserId;
+        }
+        const newCustomer = await customersAPI.create(customerPayload);
         ma_khach_hang = newCustomer.id || newCustomer.ma_khach_hang;
       }
 

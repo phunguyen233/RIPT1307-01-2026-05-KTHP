@@ -19,6 +19,7 @@ const recipesRoutes = require('./routes/recipes');
 const recipeIngredientsRoutes = require('./routes/recipeIngredients');
 const inventoryImportsRoutes = require('./routes/inventoryImports');
 const inventoryLogsRoutes = require('./routes/inventoryLogs');
+const paymentRoutes = require('./routes/payment');
 
 const app = express();
 app.use(cors());
@@ -31,6 +32,7 @@ app.get('/', (req, res) => {
 
 // Public routes (accessible with x-api-key header)
 app.use('/api/shops', shopsRoutes); // get shop by api key is public
+app.use('/api/payment', paymentRoutes); // VNPay payment URL generation
 
 // Routes accessible with either admin token or x-api-key (for shop-frontend)
 app.use('/api/products', verifyTokenOrApiKey, productsRoutes);
