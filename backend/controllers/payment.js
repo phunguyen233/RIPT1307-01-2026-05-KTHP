@@ -248,7 +248,7 @@ exports.createSepayOrder = async (req, res, next) => {
     }
 
     const shop_id = req.user.shop_id;
-    const { customer_id, shipping_address, total_price, order_items, items } = req.body;
+    const { customer_id, shipping_address, total_price, order_items, items, delivery_time } = req.body;
     const requestedOrderId = req.body.orderId || req.body.order_id || req.body.order || null;
 
     // If an existing order id is provided, use it instead of creating a new order
@@ -294,9 +294,10 @@ exports.createSepayOrder = async (req, res, next) => {
       const order_code = 'DH' + nextNumber.toString();
 
       const validCustomerId = customer_id && !isNaN(customer_id) ? customer_id : null;
+      const validDeliveryTime = delivery_time || null;
       const orderResult = await client.query(
-        'INSERT INTO orders (customer_id, shipping_address, total_price, status, shop_id, order_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [validCustomerId, shipping_address || null, amount || 0, 'pending', shop_id, order_code]
+        'INSERT INTO orders (customer_id, shipping_address, total_price, status, shop_id, order_code, delivery_time) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [validCustomerId, shipping_address || null, amount || 0, 'pending', shop_id, order_code, validDeliveryTime]
       );
 
       const newOrder = orderResult.rows[0];

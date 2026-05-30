@@ -86,7 +86,7 @@ exports.getOrderById = async (req, res, next) => {
 exports.createOrder = async (req, res, next) => {
   const client = await db.pool.connect();
   try {
-    const { customer_id, shipping_address, total_price, status, order_items, items } = req.body;
+    const { customer_id, shipping_address, total_price, status, order_items, items, delivery_time } = req.body;
     const shop_id = req.user.shop_id;
 
     // Validate required fields
@@ -110,9 +110,12 @@ exports.createOrder = async (req, res, next) => {
     // Handle customer_id - use null if not provided or invalid
     const validCustomerId = customer_id && !isNaN(customer_id) ? customer_id : null;
 
+    // Handle delivery_time - use null if not provided
+    const validDeliveryTime = delivery_time || null;
+
     const orderResult = await client.query(
-      'INSERT INTO orders (customer_id, shipping_address, total_price, status, shop_id, order_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [validCustomerId, shipping_address, total_price || 0, status || 'pending', shop_id, order_code]
+      'INSERT INTO orders (customer_id, shipping_address, total_price, status, shop_id, order_code, delivery_time) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [validCustomerId, shipping_address, total_price || 0, status || 'pending', shop_id, order_code, validDeliveryTime]
     );
     const newOrder = orderResult.rows[0];
 
@@ -143,11 +146,11 @@ exports.createOrder = async (req, res, next) => {
 exports.updateOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { customer_id, shipping_address, total_price, status, order_code } = req.body;
+    const { customer_id, shipping_address, total_price, status, order_code, delivery_time } = req.body;
     const shop_id = req.user.shop_id;
 
-    const query = 'UPDATE orders SET customer_id = $1, shipping_address = $2, total_price = $3, status = $4, order_code = $5 WHERE id = $6 AND shop_id = $7 RETURNING *';
-    const result = await db.query(query, [customer_id, shipping_address, total_price, status, order_code, id, shop_id]);
+    const query = 'UPDATE orders SET customer_id = $1, shipping_address = $2, total_price = $3, status = $4, order_code = $5, delivery_time = $6 WHERE id = $7 AND shop_id = $8 RETURNING *';
+    const result = await db.query(query, [customer_id, shipping_address, total_price, status, order_code, delivery_time || null, id, shop_id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
     }

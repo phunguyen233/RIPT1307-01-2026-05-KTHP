@@ -120,7 +120,8 @@ export default function Cart() {
         customer_id: ma_khach_hang,
         shipping_address: checkoutAddress,
         total_price: total,
-        items: orderItems
+        items: orderItems,
+        delivery_time: checkoutDeliveryTime || null
       });
 
       const ma_don_hang = orderRes.id || orderRes.ma_don_hang;
@@ -136,6 +137,7 @@ export default function Cart() {
   const [checkoutName, setCheckoutName] = useState("");
   const [checkoutPhone, setCheckoutPhone] = useState("");
   const [checkoutAddress, setCheckoutAddress] = useState("");
+  const [checkoutDeliveryTime, setCheckoutDeliveryTime] = useState("");
   const [checkoutFieldErrors, setCheckoutFieldErrors] = useState<{ name?: string; phone?: string; address?: string }>({});
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [maDonHang, setMaDonHang] = useState<number | null>(null);
@@ -279,6 +281,10 @@ export default function Cart() {
                 <label className="block text-sm mb-1">Địa chỉ nhận</label>
                 <input className={`w-full border rounded px-3 py-2 ${checkoutFieldErrors.address ? 'border-red-500' : ''}`} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} />
                 {checkoutFieldErrors.address && <p className="text-red-600 text-xs mt-1">{checkoutFieldErrors.address}</p>}
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Thời gian nhận hàng</label>
+                <input type="datetime-local" className="w-full border rounded px-3 py-2" value={checkoutDeliveryTime} onChange={(e) => setCheckoutDeliveryTime(e.target.value)} />
               </div>
               <div className="flex justify-end gap-3 pt-3">
                 <button onClick={() => setShowCheckout(false)} className="px-4 py-2 bg-gray-300 rounded">Hủy</button>

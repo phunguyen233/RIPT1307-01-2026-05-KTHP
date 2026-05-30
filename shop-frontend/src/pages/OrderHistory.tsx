@@ -38,6 +38,7 @@ export default function OrderHistory() {
     recipientName: order.ten_nguoi_nhan || order.ten_khach_hang || order.ho_ten || order.customer_name || order.name,
     customerPhone: order.so_dien_thoai_nhan || order.so_dien_thoai || order.customer_phone || order.phone,
     shippingAddress: order.dia_chi_nhan || order.dia_chi_giao_hang || order.dia_chi || order.shipping_address,
+    deliveryTime: order.delivery_time || order.thoi_gian_nhan || null,
     items: order.order_items || order.items || [],
   });
 
@@ -128,6 +129,7 @@ export default function OrderHistory() {
                 <div>
                   <div className="font-semibold">Mã đơn: {o.orderCode}</div>
                   <div className="text-sm text-gray-600">Ngày: {o.orderDate || '-'}</div>
+                  <div className="text-sm text-gray-600">Nhận hàng: {o.deliveryTime ? new Date(o.deliveryTime).toLocaleString('vi-VN') : 'Chưa xác định'}</div>
                   <div className="text-sm">Người nhận: {o.recipientName || '-'}</div>
                   <div className="text-sm">SĐT nhận: {o.customerPhone || '-'}</div>
                   <div className="text-sm">Địa chỉ: {o.shippingAddress || '-'}</div>
@@ -151,6 +153,7 @@ export default function OrderHistory() {
 
             <div className="text-sm text-gray-700 mb-3">
               <div><strong>Ngày:</strong> {selectedOrder.orderDate || '-'}</div>
+              <div><strong>Thời gian nhận hàng:</strong> {selectedOrder.deliveryTime ? new Date(selectedOrder.deliveryTime).toLocaleString('vi-VN') : 'Chưa xác định'}</div>
               <div><strong>Khách:</strong> {selectedOrder.customerName || '-'}</div>
               <div><strong>Người nhận:</strong> {selectedOrder.recipientName || '-'}</div>
               <div><strong>SĐT nhận:</strong> {selectedOrder.customerPhone || '-'}</div>
