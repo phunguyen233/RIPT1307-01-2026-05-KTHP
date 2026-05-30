@@ -181,7 +181,8 @@ exports.handleSePayWebhook = async (req, res, next) => {
     }
 
     const rawBody = req.rawBody || JSON.stringify(req.body || {});
-    const computedHash = crypto.createHmac('sha256', SEPAY_SECRET).update(rawBody).digest('hex');
+    const payloadToSign = `${timestamp}.${rawBody}`;
+    const computedHash = crypto.createHmac('sha256', SEPAY_SECRET).update(payloadToSign).digest('hex');
 
     // Use timingSafeEqual for comparison
     const sigBuf = Buffer.from(signature, 'hex');
