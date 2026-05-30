@@ -29,6 +29,30 @@ export default function OrderHistory() {
     return 'bg-green-100 text-green-800';
   };
 
+  const formatDate = (value: any) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return String(value);
+    return date.toLocaleString('vi-VN');
+  };
+
+  const getOrderStatusSteps = (status: string | undefined) => {
+    const isCanceled = status === 'huy' || status === 'cancelled' || status === 'canceled';
+    const isCompleted = status === 'hoan_tat' || status === 'da_thanh_toan' || status === 'completed';
+
+    if (isCanceled) {
+      return [
+        { key: 'pending', label: 'Chờ xử lý' },
+        { key: 'cancelled', label: 'Đã hủy' },
+      ];
+    }
+
+    return [
+      { key: 'pending', label: 'Chờ xử lý' },
+      { key: 'completed', label: 'Hoàn thành' },
+    ];
+  };
+
   const normalizeOrder = (order: any) => ({
     ...order,
     orderId: order.id || order.ma_don_hang || order.order_code,
@@ -128,11 +152,13 @@ export default function OrderHistory() {
               <div className="flex justify-between items-center">
                 <div>
                   <div className="font-semibold">Mã đơn: {o.orderCode}</div>
-                  <div className="text-sm text-gray-600">Ngày: {o.orderDate || '-'}</div>
-                  <div className="text-sm text-gray-600">Nhận hàng: {o.deliveryTime ? new Date(o.deliveryTime).toLocaleString('vi-VN') : 'Chưa xác định'}</div>
+                  <div className="text-sm text-gray-600">Ngày: {formatDate(o.orderDate)}</div>
+                  <div className="text-sm text-gray-600">Nhận hàng: {o.deliveryTime ? formatDate(o.deliveryTime) : 'Chưa xác định'}</div>
                   <div className="text-sm">Người nhận: {o.recipientName || '-'}</div>
                   <div className="text-sm">SĐT nhận: {o.customerPhone || '-'}</div>
                   <div className="text-sm">Địa chỉ: {o.shippingAddress || '-'}</div>
+                  <div className="text-sm">Số sản phẩm: {(o.items || []).length}</div>
+                  <div className="text-sm">Tổng tiền: {(o.tong_tien || o.total_price || o.totalPrice)?.toLocaleString ? (o.tong_tien || o.total_price || o.totalPrice).toLocaleString() + 'đ' : (o.tong_tien || o.total_price || o.totalPrice)}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold ${badgeClassFor(o.trang_thai || o.status)}`}>{statusLabel(o.trang_thai || o.status)}</span>
@@ -152,13 +178,36 @@ export default function OrderHistory() {
             </div>
 
             <div className="text-sm text-gray-700 mb-3">
-              <div><strong>Ngày:</strong> {selectedOrder.orderDate || '-'}</div>
-              <div><strong>Thời gian nhận hàng:</strong> {selectedOrder.deliveryTime ? new Date(selectedOrder.deliveryTime).toLocaleString('vi-VN') : 'Chưa xác định'}</div>
+              <div><strong>Ngày:</strong> {formatDate(selectedOrder.orderDate)}</div>
+              <div><strong>Thời gian nhận hàng:</strong> {selectedOrder.deliveryTime ? formatDate(selectedOrder.deliveryTime) : 'Chưa xác định'}</div>
               <div><strong>Khách:</strong> {selectedOrder.customerName || '-'}</div>
               <div><strong>Người nhận:</strong> {selectedOrder.recipientName || '-'}</div>
               <div><strong>SĐT nhận:</strong> {selectedOrder.customerPhone || '-'}</div>
               <div><strong>Địa chỉ:</strong> {selectedOrder.shippingAddress || '-'}</div>
               <div className="mt-2"><strong>Trạng thái:</strong> <span className={`px-2 py-1 rounded ${badgeClassFor(selectedOrder.trang_thai || selectedOrder.status)}`}>{statusLabel(selectedOrder.trang_thai || selectedOrder.status)}</span></div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="font-semibold mb-3">Tiến trình đơn hàng</h3>
+              <div className="space-y-3">
+                {getOrderStatusSteps(selectedOrder.trang_thai || selectedOrder.status).map((step, idx) => {
+                  const isActive = step.key === (selectedOrder.trang_thai || selectedOrder.status);
+                  const isCompleted = selectedOrder.trang_thai === 'completed' || selectedOrder.status === 'completed' || step.key === 'pending';
+                  return (
+                    <div key={step.key} className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <div className={`font-semibold ${isActive ? 'text-green-700' : 'text-gray-700'}`}>{step.label}</div>
+                        <div className="text-xs text-gray-500">
+                          {step.key === 'pending' ? 'Đơn hàng đang chờ xác nhận và xử lý' : step.key === 'completed' ? 'Đơn hàng đã hoàn thành' : 'Đơn hàng đã bị hủy'}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div>

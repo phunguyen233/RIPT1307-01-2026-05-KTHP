@@ -142,6 +142,22 @@ export default function PaymentModal({ maDonHang = null, amount: initAmount = 0,
             <p><strong>Số tiền:</strong> {Number(amount).toLocaleString()} ₫</p>
           </div>
           <p className="text-sm text-gray-500">Sau khi chuyển khoản xong, hệ thống sẽ cập nhật trạng thái đơn hàng tự động.</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
+            <button
+              onClick={cancelOrder}
+              disabled={loading}
+              className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md"
+            >
+              Hủy giao dịch
+            </button>
+            <button
+              onClick={markPaid}
+              disabled={loading}
+              className="w-full sm:w-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+            >
+              Đã thanh toán
+            </button>
+          </div>
         </div>
       ) : (
         <div className="mt-4 text-center">

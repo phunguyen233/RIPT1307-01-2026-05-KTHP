@@ -116,12 +116,13 @@ export default function Cart() {
         price: c.gia_ban || c.price || 0
       }));
 
+      const deliveryTimeIso = checkoutDeliveryTime ? new Date(checkoutDeliveryTime).toISOString() : null;
       const orderRes = await ordersAPI.create({
         customer_id: ma_khach_hang,
         shipping_address: checkoutAddress,
         total_price: total,
         items: orderItems,
-        delivery_time: checkoutDeliveryTime || null
+        delivery_time: deliveryTimeIso,
       });
 
       const ma_don_hang = orderRes.id || orderRes.ma_don_hang;
