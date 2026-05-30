@@ -134,9 +134,11 @@ exports.checkout = async (req, res, next) => {
       }
 
       const sepayData = generateSepayQr();
+      const qrUrl = `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(info)}&des=${encodeURIComponent(info)}&addInfo=${encodeURIComponent(info)}`;
+      console.log('Generated SePay QR URL (checkout):', qrUrl);
       return res.json({
         method: 'SEPAY',
-        qrUrl: sepayData.qrUrl,
+        qrUrl,
         bankName: sepayData.bankName,
         bankAccount: sepayData.bankAccount,
         accountName: sepayData.accountName,
@@ -191,20 +193,27 @@ exports.handleSePayWebhook = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    const orderId = req.body.orderId || req.body.order_id || req.body.order_code || req.body.orderCode;
-    const status = String(req.body.status || req.body.payment_status || '').toLowerCase();
-
-    if (!orderId) {
-      return res.status(400).json({ error: 'orderId is required' });
+    // SePay webhook doesn't include orderId. The payment QR encodes the order_code into
+    // the transfer `content` (or `description`). Extract `DH...` order code from there.
+    const content = String(req.body.content || req.body.description || '').trim();
+    const match = content.match(/DH\d+/i);
+    if (!match) {
+      return res.status(400).json({ error: 'Không tìm thấy mã đơn hàng trong content/description' });
     }
 
-    if (!['paid', 'completed', 'success'].includes(status)) {
-      return res.status(200).json({ message: 'Webhook received but no action taken' });
+    const orderCode = match[0];
+
+    // Validate it's a receiving transfer and amount matches order total
+    const transferType = String(req.body.transferType || req.body.transfer_type || '').toLowerCase();
+    const transferAmount = Number(req.body.transferAmount || req.body.transfer_amount || req.body.transfer_amount || 0);
+
+    if (transferType !== 'in') {
+      return res.status(200).json({ message: 'Không phải giao dịch nhận tiền' });
     }
 
     const orderQuery = await db.query(
-      'SELECT id, shop_id, status FROM orders WHERE id = $1 OR order_code = $1',
-      [orderId]
+      'SELECT id, shop_id, status, total_price FROM orders WHERE order_code = $1',
+      [orderCode]
     );
 
     if (orderQuery.rows.length === 0) {
@@ -212,6 +221,11 @@ exports.handleSePayWebhook = async (req, res, next) => {
     }
 
     const order = orderQuery.rows[0];
+    const orderTotal = Number(order.total_price || 0);
+
+    if (Number.isNaN(transferAmount) || transferAmount < orderTotal) {
+      return res.status(400).json({ error: 'Số tiền không khớp' });
+    }
     if (order.status === 'completed') {
       return res.json({ message: 'Order already completed', order });
     }
@@ -247,10 +261,12 @@ exports.createSepayOrder = async (req, res, next) => {
       const amount = Number(existingOrder.total_price || 0);
       const order_code = existingOrder.order_code || existingOrder.id;
       const sepayData = generateSepayQr();
+      const qrUrl = `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(order_code)}&des=${encodeURIComponent(order_code)}&addInfo=${encodeURIComponent(order_code)}`;
+      console.log('Generated SePay QR URL (existing order):', qrUrl);
       return res.status(200).json({
         order: existingOrder,
         method: 'SEPAY',
-        qrUrl: `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(order_code)}`,
+        qrUrl,
         amount,
         orderCode: order_code,
         bankName: sepayData.bankName,
@@ -300,10 +316,12 @@ exports.createSepayOrder = async (req, res, next) => {
       await client.query('COMMIT');
 
       const sepayData = generateSepayQr();
+      const qrUrl = `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(order_code)}&des=${encodeURIComponent(order_code)}&addInfo=${encodeURIComponent(order_code)}`;
+      console.log('Generated SePay QR URL (new order):', qrUrl);
       return res.status(201).json({
         order: { ...newOrder, order_items: insertedItems },
         method: 'SEPAY',
-        qrUrl: `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(order_code)}`,
+        qrUrl,
         amount,
         orderCode: order_code,
         bankName: sepayData.bankName,
