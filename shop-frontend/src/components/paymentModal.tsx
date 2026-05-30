@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import shopApiClient from "../api/shopApiClient";
 import { useNavigate } from "react-router-dom";
 
 type Props = {
@@ -40,14 +41,12 @@ export default function PaymentModal({ maDonHang = null, amount: initAmount = 0,
       setErrorMessage("");
       setPaymentMethod(null);
       setQrUrl("");
-      const backendBaseUrl = process.env.REACT_APP_SHOP_API_URL || process.env.REACT_APP_BACKEND_URL || 'https://bepmam-backend.onrender.com/api';
-      const backendUrl = backendBaseUrl.replace(/\/+$/, '');
-      const res = await axios.get(`${backendUrl}/payment/checkout`, {
-        params: {
-          amount,
-          info,
-          orderId: maDonHang,
-        },
+      // Use shop API client (provides x-api-key) to create order QR and return sepay data
+      const res = await shopApiClient.post(`/payment/sepay/checkout`, {
+        amount,
+        info,
+        orderId: maDonHang,
+        customer_id: undefined,
       });
 
       if (res.data?.method === 'SEPAY' && res.data.qrUrl) {
@@ -84,10 +83,8 @@ export default function PaymentModal({ maDonHang = null, amount: initAmount = 0,
 
     try {
       setLoading(true);
-      const backendBaseUrl = process.env.REACT_APP_SHOP_API_URL || process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000/api';
-      const backendUrl = backendBaseUrl.replace(/\/+$/, '');
-      const res = await axios.post(`${backendUrl}/payment/cancel`, { ma_don_hang: maDonHang });
-      if (res.data && res.data.success) {
+      const res = await shopApiClient.post(`/payment/sepay/${maDonHang}/cancel`);
+      if (res.data && res.data.order) {
         alert("Đã hủy đơn hàng.");
         onCancelled && onCancelled(maDonHang);
         onClose && onClose();
@@ -103,17 +100,21 @@ export default function PaymentModal({ maDonHang = null, amount: initAmount = 0,
   };
 
   const markPaid = () => {
-    // If parent provided onPaid, call it so it can clear cart / update UI
-    if (onPaid) {
+    // Call backend to mark customer claimed paid (webhook will still verify)
+    (async () => {
       try {
-        onPaid(maDonHang ?? undefined);
+        if (maDonHang) {
+          await shopApiClient.post(`/payment/sepay/${maDonHang}/mark-paid`);
+        }
       } catch (e) {
-        console.error('onPaid handler error', e);
+        console.error('mark-paid error', e);
       }
-    }
-    // navigate to order history with a message
-    navigate('/orders-history', { state: { infoModal: 'vui lòng chờ đơn hàng được xác nhận.' } });
-    onClose && onClose();
+      if (onPaid) {
+        try { onPaid(maDonHang ?? undefined); } catch (e) { console.error('onPaid error', e); }
+      }
+      navigate('/orders-history', { state: { infoModal: 'vui lòng chờ đơn hàng được xác nhận.' } });
+      onClose && onClose();
+    })();
   };
 
   return (

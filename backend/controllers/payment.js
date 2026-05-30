@@ -152,14 +152,41 @@ exports.checkout = async (req, res, next) => {
 
 exports.handleSePayWebhook = async (req, res, next) => {
   try {
-    const signature = req.headers['x-sepay-signature'];
-    const rawBody = req.rawBody || JSON.stringify(req.body || {});
-    const hash = crypto
-      .createHmac('sha256', SEPAY_SECRET)
-      .update(rawBody)
-      .digest('hex');
+    // Verify signature header and timestamp to prevent replay attacks
+    const sigHeader = req.headers['x-sepay-signature'] || req.headers['x-sepay-signature'.toLowerCase()];
+    const tsHeader = req.headers['x-sepay-timestamp'] || req.headers['x-sepay-timestamp'.toLowerCase()];
 
-    if (!signature || signature !== hash) {
+    if (!sigHeader) {
+      return res.status(401).json({ error: 'Missing X-SePay-Signature header' });
+    }
+    if (!tsHeader) {
+      return res.status(401).json({ error: 'Missing X-SePay-Timestamp header' });
+    }
+
+    // Accept header like: "sha256=<hex>" or just the hex
+    let signature = String(sigHeader);
+    if (signature.startsWith('sha256=')) {
+      signature = signature.slice('sha256='.length);
+    }
+
+    const timestamp = parseInt(String(tsHeader), 10);
+    if (Number.isNaN(timestamp)) {
+      return res.status(400).json({ error: 'Invalid X-SePay-Timestamp' });
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const tolerance = Number(process.env.SEPAY_TOLERANCE_SECONDS || 300);
+    if (Math.abs(now - timestamp) > tolerance) {
+      return res.status(400).json({ error: 'Stale request (possible replay)'});
+    }
+
+    const rawBody = req.rawBody || JSON.stringify(req.body || {});
+    const computedHash = crypto.createHmac('sha256', SEPAY_SECRET).update(rawBody).digest('hex');
+
+    // Use timingSafeEqual for comparison
+    const sigBuf = Buffer.from(signature, 'hex');
+    const compBuf = Buffer.from(computedHash, 'hex');
+    if (sigBuf.length !== compBuf.length || !crypto.timingSafeEqual(sigBuf, compBuf)) {
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
@@ -193,6 +220,141 @@ exports.handleSePayWebhook = async (req, res, next) => {
 
     const fakeReq = { params: { id: order.id }, user: { shop_id: order.shop_id } };
     return ordersController.processOrder(fakeReq, res, next);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Create order in DB and return SePay QR data
+exports.createSepayOrder = async (req, res, next) => {
+  try {
+    if (!hasSePayConfig()) {
+      return res.status(500).json({ error: 'SePay configuration is missing' });
+    }
+
+    const shop_id = req.user.shop_id;
+    const { customer_id, shipping_address, total_price, order_items, items } = req.body;
+    const requestedOrderId = req.body.orderId || req.body.order_id || req.body.order || null;
+
+    // If an existing order id is provided, use it instead of creating a new order
+    if (requestedOrderId) {
+      const orderQuery = await db.query('SELECT * FROM orders WHERE id = $1 AND shop_id = $2', [requestedOrderId, shop_id]);
+      if (orderQuery.rows.length === 0) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      const existingOrder = orderQuery.rows[0];
+      const amount = Number(existingOrder.total_price || 0);
+      const order_code = existingOrder.order_code || existingOrder.id;
+      const sepayData = generateSepayQr();
+      return res.status(200).json({
+        order: existingOrder,
+        method: 'SEPAY',
+        qrUrl: `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(order_code)}`,
+        amount,
+        orderCode: order_code,
+        bankName: sepayData.bankName,
+        bankAccount: sepayData.bankAccount,
+        accountName: sepayData.accountName,
+      });
+    }
+
+    const amount = Number(total_price || req.body.amount || 0);
+    const info = String(req.body.info || req.body.note || `Thanh toán đơn hàng`).trim();
+
+    if (!amount || Number.isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Amount phải lớn hơn 0' });
+    }
+
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // generate order_code similar to orders.createOrder
+      const codeQuery = `SELECT COALESCE(MAX(CAST(SUBSTRING(order_code FROM 3) AS INTEGER)), 0) + 1 AS next_number
+                         FROM orders WHERE shop_id = $1 AND order_code LIKE 'DH%'`;
+      const codeResult = await client.query(codeQuery, [shop_id]);
+      const nextNumber = codeResult.rows[0].next_number;
+      const order_code = 'DH' + nextNumber.toString();
+
+      const validCustomerId = customer_id && !isNaN(customer_id) ? customer_id : null;
+      const orderResult = await client.query(
+        'INSERT INTO orders (customer_id, shipping_address, total_price, status, shop_id, order_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [validCustomerId, shipping_address || null, amount || 0, 'pending', shop_id, order_code]
+      );
+
+      const newOrder = orderResult.rows[0];
+
+      const orderItemsToInsert = order_items || items || [];
+      const insertedItems = [];
+      if (orderItemsToInsert.length > 0) {
+        for (const item of orderItemsToInsert) {
+          const itemResult = await client.query(
+            'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4) RETURNING *',
+            [newOrder.id, item.product_id || item.ma_san_pham, item.quantity || item.so_luong, item.price || item.don_gia]
+          );
+          insertedItems.push(itemResult.rows[0]);
+        }
+      }
+
+      await client.query('COMMIT');
+
+      const sepayData = generateSepayQr();
+      return res.status(201).json({
+        order: { ...newOrder, order_items: insertedItems },
+        method: 'SEPAY',
+        qrUrl: `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(order_code)}`,
+        amount,
+        orderCode: order_code,
+        bankName: sepayData.bankName,
+        bankAccount: sepayData.bankAccount,
+        accountName: sepayData.accountName,
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Cancel order (from QR modal)
+exports.cancelSepayOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const shop_id = req.user.shop_id;
+
+    const orderCheck = await db.query('SELECT status FROM orders WHERE id = $1 AND shop_id = $2', [id, shop_id]);
+    if (orderCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    const currentStatus = orderCheck.rows[0].status;
+    if (currentStatus === 'completed' || currentStatus === 'cancelled') {
+      return res.status(400).json({ message: 'Cannot cancel this order' });
+    }
+
+    const result = await db.query('UPDATE orders SET status = $1 WHERE id = $2 AND shop_id = $3 RETURNING *', ['cancelled', id, shop_id]);
+    res.json({ message: 'Order cancelled', order: result.rows[0] });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Mark paid clicked by customer — does not finalize until webhook confirms
+exports.markSepayOrderPaid = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const shop_id = req.user.shop_id;
+
+    const orderCheck = await db.query('SELECT id, status FROM orders WHERE id = $1 AND shop_id = $2', [id, shop_id]);
+    if (orderCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Do not change status here. Webhook will verify and call processOrder to complete.
+    return res.json({ message: 'Marked as customer-paid (awaiting SePay confirmation)', order: orderCheck.rows[0] });
   } catch (error) {
     next(error);
   }
