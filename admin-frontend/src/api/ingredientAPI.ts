@@ -9,6 +9,8 @@ export interface Ingredient {
   shop_id: number;
   stock_quantity: number;
   avg_price: number;
+  warning_threshold?: number;
+  note?: string;
   created_at?: string;
 }
 
@@ -17,7 +19,7 @@ export const ingredientAPI = {
     const res = await axios.get(`/ingredients/`);
     return res.data;
   },
-  add: async (payload: { name: string; unit_id: number; stock_quantity?: number }): Promise<Ingredient> => {
+  add: async (payload: { name: string; unit_id: number; stock_quantity?: number; avg_price?: number; warning_threshold?: number; note?: string }): Promise<Ingredient> => {
     const res = await axios.post(`/ingredients/`, payload);
     return res.data;
   },
@@ -25,7 +27,7 @@ export const ingredientAPI = {
     const res = await axios.get(`/ingredients/${id}`);
     return res.data;
   },
-  update: async (id: number, payload: { name: string; unit_id: number; stock_quantity?: number }): Promise<Ingredient> => {
+  update: async (id: number, payload: { name: string; unit_id: number; stock_quantity?: number; avg_price?: number; warning_threshold?: number; note?: string }): Promise<Ingredient> => {
     const res = await axios.put(`/ingredients/${id}`, payload);
     return res.data;
   },

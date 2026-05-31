@@ -9,7 +9,7 @@ const Categories: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ name: "", is_active: true });
+  const [formData, setFormData] = useState({ name: "", description: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -35,6 +35,7 @@ const Categories: React.FC = () => {
   const handleAddCategory = async (values: any) => {
     setError("");
     const name = values.name || formData.name;
+    const description = values.description || formData.description;
     if (!name.trim()) {
       setError("Tên danh mục không được trống");
       return;
@@ -43,13 +44,13 @@ const Categories: React.FC = () => {
     try {
       setLoading(true);
       if (isEditMode && currentId) {
-        await categoryAPI.update(currentId, { name });
+        await categoryAPI.update(currentId, { name, description });
         message.success("Cập nhật danh mục thành công!");
       } else {
-        await categoryAPI.create({ name });
+        await categoryAPI.create({ name, description });
         message.success("Thêm danh mục thành công!");
       }
-      setFormData({ name: "", is_active: true });
+      setFormData({ name: "", description: "" });
       setShowModal(false);
       setIsEditMode(false);
       setCurrentId(null);
@@ -64,7 +65,7 @@ const Categories: React.FC = () => {
 
   const handleEditCategory = (category: Category) => {
     setCurrentId(category.id || 0);
-    setFormData({ name: category.name, is_active: category.is_active !== false });
+    setFormData({ name: category.name, description: category.description || "" });
     setIsEditMode(true);
     setShowModal(true);
     setError("");
@@ -90,29 +91,8 @@ const Categories: React.FC = () => {
         <span style={{ fontWeight: 600, color: '#1f2937', fontSize: 15 }}>{text}</span>
       )
     },
-    {
-      title: "Mô tả",
-      key: "description",
-      render: (_: any, record: Category) => {
-        return <span style={{ color: '#4b5563', fontSize: 14 }}>{record.description || "Danh mục sản phẩm"}</span>;
-      }
-    },
-    {
-      title: "Trạng thái",
-      key: "status",
-      align: 'center' as const,
-      render: (_: any, record: Category) => {
-        const isActive = record.is_active !== false;
-        return (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: isActive ? '#f0fdf4' : '#fef2f2', padding: '6px 12px', borderRadius: 20 }}>
-             <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: isActive ? '#16a34a' : '#ef4444' }}></div>
-             <span style={{ color: isActive ? '#16a34a' : '#ef4444', fontSize: 13, fontWeight: 500 }}>
-               {isActive ? 'Hoạt động' : 'Đã ẩn'}
-             </span>
-          </div>
-        );
-      }
-    },
+
+
     {
       title: "Thao tác",
       key: "action",
@@ -193,7 +173,7 @@ const Categories: React.FC = () => {
              type="primary"
              icon={<PlusOutlined />}
              onClick={() => {
-               setFormData({ name: "", is_active: true });
+               setFormData({ name: "", description: "" });
                setIsEditMode(false);
                setCurrentId(null);
                setError("");
@@ -207,37 +187,15 @@ const Categories: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginBottom: 32 }}>
+      <div style={{ display: 'flex', gap: 24, marginBottom: 32 }}>
         {/* Card 1 */}
-        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)' }}>
+        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)', width: 320 }}>
            <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ShoppingOutlined style={{ fontSize: 18, color: '#16a34a' }} />
            </div>
            <div>
               <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Tổng danh mục</div>
               <div style={{ color: '#111', fontSize: 24, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>{categories.length}</div>
-           </div>
-        </div>
-        
-        {/* Card 2 */}
-        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)' }}>
-           <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircleOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
-           </div>
-           <div>
-              <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Đang hoạt động</div>
-              <div style={{ color: '#111', fontSize: 24, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>{activeCount}</div>
-           </div>
-        </div>
-
-        {/* Card 3 */}
-        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)' }}>
-           <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MinusCircleOutlined style={{ fontSize: 18, color: '#ef4444' }} />
-           </div>
-           <div>
-              <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Đã ẩn</div>
-              <div style={{ color: '#111', fontSize: 24, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>{hiddenCount}</div>
            </div>
         </div>
       </div>
@@ -282,16 +240,7 @@ const Categories: React.FC = () => {
             />
           </Form.Item>
 
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 600, color: '#374151', marginBottom: 12 }}>Trạng thái</div>
-            <Switch
-              checked={formData.is_active}
-              onChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              checkedChildren="Hoạt động"
-              unCheckedChildren="Đã ẩn"
-              style={formData.is_active ? { backgroundColor: '#16a34a' } : undefined}
-            />
-          </div>
+
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
             <Button onClick={() => setShowModal(false)} style={{ height: 44, padding: '0 24px', borderRadius: 8, fontWeight: 600 }}>
