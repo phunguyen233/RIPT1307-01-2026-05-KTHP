@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Space, message } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Table, Button, Modal, Form, Input, Space, message, Switch } from "antd";
+import { EditOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, AppstoreOutlined, DropboxOutlined, SearchOutlined, ShoppingOutlined, CheckCircleOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { categoryAPI, Category } from "../api/categoryAPI";
 
 const Categories: React.FC = () => {
@@ -9,54 +9,14 @@ const Categories: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ name: "" });
+  const [formData, setFormData] = useState({ name: "", is_active: true });
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     fetchCategories();
   }, []);
-
-  const columns = [
-    {
-      title: "Tên danh mục",
-      dataIndex: "name",
-      key: "name",
-    },
-    {
-      title: "Hành động",
-      key: "action",
-      render: (_: any, record: Category) => (
-        <Space size="middle">
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEditCategory(record)}
-          >
-            Sửa
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: 'Xác nhận xóa',
-                content: 'Bạn có chắc chắn muốn xóa danh mục này?',
-                okText: 'Xóa',
-                cancelText: 'Hủy',
-                onOk: () => handleDeleteCategory(record.id || 0),
-              });
-            }}
-          >
-            Xóa
-          </Button>
-        </Space>
-      ),
-    },
-  ];
 
   const fetchCategories = async () => {
     try {
@@ -70,10 +30,6 @@ const Categories: React.FC = () => {
     } finally {
       setInitialLoading(false);
     }
-  };
-
-  const handleReloadPage = async () => {
-    await fetchCategories();
   };
 
   const handleAddCategory = async (values: any) => {
@@ -93,7 +49,7 @@ const Categories: React.FC = () => {
         await categoryAPI.create({ name });
         message.success("Thêm danh mục thành công!");
       }
-      setFormData({ name: "" });
+      setFormData({ name: "", is_active: true });
       setShowModal(false);
       setIsEditMode(false);
       setCurrentId(null);
@@ -108,7 +64,7 @@ const Categories: React.FC = () => {
 
   const handleEditCategory = (category: Category) => {
     setCurrentId(category.id || 0);
-    setFormData({ name: category.name });
+    setFormData({ name: category.name, is_active: category.is_active !== false });
     setIsEditMode(true);
     setShowModal(true);
     setError("");
@@ -124,41 +80,166 @@ const Categories: React.FC = () => {
     }
   };
 
+
+  const columns = [
+    {
+      title: "Danh mục",
+      dataIndex: "name",
+      key: "name",
+      render: (text: string) => (
+        <span style={{ fontWeight: 600, color: '#1f2937', fontSize: 15 }}>{text}</span>
+      )
+    },
+    {
+      title: "Mô tả",
+      key: "description",
+      render: (_: any, record: Category) => {
+        return <span style={{ color: '#4b5563', fontSize: 14 }}>{record.description || "Danh mục sản phẩm"}</span>;
+      }
+    },
+    {
+      title: "Trạng thái",
+      key: "status",
+      align: 'center' as const,
+      render: (_: any, record: Category) => {
+        const isActive = record.is_active !== false;
+        return (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: isActive ? '#f0fdf4' : '#fef2f2', padding: '6px 12px', borderRadius: 20 }}>
+             <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: isActive ? '#16a34a' : '#ef4444' }}></div>
+             <span style={{ color: isActive ? '#16a34a' : '#ef4444', fontSize: 13, fontWeight: 500 }}>
+               {isActive ? 'Hoạt động' : 'Đã ẩn'}
+             </span>
+          </div>
+        );
+      }
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      align: 'center' as const,
+      render: (_: any, record: Category) => (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+          <Button
+            icon={<EditOutlined style={{ color: '#16a34a' }} />}
+            onClick={() => handleEditCategory(record)}
+            style={{ width: 36, height: 36, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4' }}
+          />
+          <Button
+            icon={<DeleteOutlined style={{ color: '#ef4444' }} />}
+            onClick={() => {
+              Modal.confirm({
+                title: 'Xác nhận xóa',
+                content: 'Bạn có chắc chắn muốn xóa danh mục này?',
+                okText: 'Xóa',
+                cancelText: 'Hủy',
+                onOk: () => handleDeleteCategory(record.id || 0),
+              });
+            }}
+            style={{ width: 36, height: 36, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid #fecaca', backgroundColor: '#fef2f2' }}
+          />
+        </div>
+      ),
+    },
+  ];
+
   const filteredCategories = categories.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const activeCount = categories.filter(c => c.is_active !== false).length;
+  const hiddenCount = categories.length - activeCount;
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Quản lý danh mục</h2>
-        <Space>
-          <Button icon={<ReloadOutlined />} onClick={handleReloadPage}>
-            Tải lại
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setFormData({ name: "" });
-              setIsEditMode(false);
-              setCurrentId(null);
-              setError("");
-              setShowModal(true);
-            }}
-          >
-            Thêm danh mục
-          </Button>
-        </Space>
+    <div style={{ backgroundColor: '#fff', minHeight: '100vh', padding: 32, borderRadius: 16 }}>
+      <style>{`
+        .custom-category-table .ant-table-thead > tr > th {
+          background: transparent !important;
+          border-bottom: 1px solid #f3f4f6 !important;
+          color: #4b5563 !important;
+          font-weight: 600 !important;
+          padding: 16px !important;
+        }
+        .custom-category-table .ant-table-tbody > tr > td {
+          border-bottom: 1px dashed #f3f4f6 !important;
+          padding: 16px !important;
+        }
+        .custom-category-table .ant-table-tbody > tr:hover > td {
+          background-color: #f9fafb !important;
+        }
+      `}</style>
+
+      {/* Breadcrumb */}
+      <div style={{ marginBottom: 24, fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AppstoreOutlined /> Trang chủ</span>
+        <span style={{ color: '#d1d5db' }}>›</span>
+        <span style={{ color: '#111', fontWeight: 600 }}>Danh mục</span>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <Input
-          placeholder="Tìm kiếm danh mục..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 300 }}
-        />
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+        <div>
+           <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#111', margin: 0, letterSpacing: '-0.025em' }}>Quản lý danh mục</h1>
+           <div style={{ fontSize: 14, color: '#6b7280', marginTop: 8 }}>Thêm, sửa, xóa và quản lý các danh mục sản phẩm</div>
+        </div>
+        <div style={{ display: 'flex', gap: 16 }}>
+           <Input
+             placeholder="Tìm kiếm danh mục..."
+             value={search}
+             onChange={(e) => setSearch(e.target.value)}
+             style={{ width: 280, height: 44, borderRadius: 8, borderColor: '#e5e7eb' }}
+             prefix={<SearchOutlined style={{ color: '#9ca3af', marginRight: 4 }} />}
+           />
+           <Button
+             type="primary"
+             icon={<PlusOutlined />}
+             onClick={() => {
+               setFormData({ name: "", is_active: true });
+               setIsEditMode(false);
+               setCurrentId(null);
+               setError("");
+               setShowModal(true);
+             }}
+             style={{ backgroundColor: '#16a34a', borderColor: '#16a34a', height: 44, borderRadius: 8, padding: '0 24px', fontWeight: 600 }}
+           >
+             Thêm danh mục
+           </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginBottom: 32 }}>
+        {/* Card 1 */}
+        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)' }}>
+           <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShoppingOutlined style={{ fontSize: 18, color: '#16a34a' }} />
+           </div>
+           <div>
+              <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Tổng danh mục</div>
+              <div style={{ color: '#111', fontSize: 24, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>{categories.length}</div>
+           </div>
+        </div>
+        
+        {/* Card 2 */}
+        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)' }}>
+           <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircleOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+           </div>
+           <div>
+              <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Đang hoạt động</div>
+              <div style={{ color: '#111', fontSize: 24, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>{activeCount}</div>
+           </div>
+        </div>
+
+        {/* Card 3 */}
+        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)' }}>
+           <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <MinusCircleOutlined style={{ fontSize: 18, color: '#ef4444' }} />
+           </div>
+           <div>
+              <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Đã ẩn</div>
+              <div style={{ color: '#111', fontSize: 24, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>{hiddenCount}</div>
+           </div>
+        </div>
       </div>
 
       <Table
@@ -166,32 +247,60 @@ const Categories: React.FC = () => {
         dataSource={filteredCategories}
         rowKey="id"
         loading={initialLoading}
-        pagination={{ pageSize: 10 }}
+        className="custom-category-table"
+        pagination={{ 
+           pageSize: 10,
+           showSizeChanger: false,
+           showTotal: (total, range) => `Hiển thị ${range[0]} - ${range[1]} trong tổng số ${total} danh mục`,
+           position: ['bottomCenter'],
+           className: "mt-8"
+        }}
       />
 
       <Modal
-        title={isEditMode ? "Sửa danh mục" : "Thêm danh mục mới"}
+        title={
+          <div style={{ fontSize: 20, fontWeight: 'bold', color: '#111', borderBottom: '1px solid #f3f4f6', paddingBottom: 16, marginBottom: 16 }}>
+            {isEditMode ? "Sửa danh mục" : "Thêm danh mục mới"}
+          </div>
+        }
         open={showModal}
         onCancel={() => setShowModal(false)}
         footer={null}
+        width={500}
       >
         <Form onFinish={handleAddCategory} layout="vertical">
           <Form.Item
-            label="Tên danh mục"
+            label={<span style={{ fontWeight: 600, color: '#374151' }}>Tên danh mục</span>}
             name="name"
+            initialValue={formData.name}
             rules={[{ required: true, message: 'Vui lòng nhập tên danh mục' }]}
           >
             <Input
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              style={{ height: 44, borderRadius: 8 }}
             />
           </Form.Item>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              {isEditMode ? "Cập nhật" : "Thêm"}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 600, color: '#374151', marginBottom: 12 }}>Trạng thái</div>
+            <Switch
+              checked={formData.is_active}
+              onChange={(checked) => setFormData({ ...formData, is_active: checked })}
+              checkedChildren="Hoạt động"
+              unCheckedChildren="Đã ẩn"
+              style={formData.is_active ? { backgroundColor: '#16a34a' } : undefined}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 32 }}>
+            <Button onClick={() => setShowModal(false)} style={{ height: 44, padding: '0 24px', borderRadius: 8, fontWeight: 600 }}>
+              Hủy
             </Button>
-          </Form.Item>
+            <Button type="primary" htmlType="submit" loading={loading} style={{ height: 44, padding: '0 24px', borderRadius: 8, fontWeight: 600, backgroundColor: '#16a34a' }}>
+              {isEditMode ? "Lưu thay đổi" : "Thêm mới"}
+            </Button>
+          </div>
         </Form>
       </Modal>
     </div>

@@ -19,6 +19,7 @@ export const ordersAPI = {
     customer_id?: number;
     shipping_address: string;
     total_price: number;
+    delivery_time?: string | null;
     items?: Array<{
       product_id: number;
       quantity: number;
@@ -35,6 +36,7 @@ export const ordersAPI = {
       customer_id: data.customer_id,
       shipping_address: data.shipping_address,
       total_price: data.total_price,
+      delivery_time: data.delivery_time || null,
       order_items: data.order_items || data.items
     };
     const res = await shopApiClient.post("/orders", payload);

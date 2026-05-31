@@ -118,9 +118,9 @@ const Orders = () => {
         },
         {
             title: "Thời gian nhận",
-            dataIndex: "created_at",
+            dataIndex: "delivery_time",
             key: "delivery_time",
-            render: (date: string) => new Date(date).toLocaleString('vi-VN'),
+            render: (date: string) => date ? new Date(date).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : "Chưa xác định",
         },
         {
             title: "Địa chỉ nhận",
@@ -200,6 +200,7 @@ const Orders = () => {
                 shipping_address: recipientAddress,
                 total_price: totalPrice,
                 status: 'pending',
+                delivery_time: deliveryTime ? dayjs(deliveryTime).toISOString() : null,
                 order_items: orderItems.map(item => ({
                     product_id: item.ma_san_pham,
                     quantity: item.so_luong,
@@ -247,7 +248,13 @@ const Orders = () => {
                     so_tien_giam_for_create = Number(addVoucherValue || 0);
                 }
             }
-            const payload: any = { customer_id: selectedCustomer, shipping_address: recipientAddress || null, total_price: total, items: chi_tiet };
+            const payload: any = { 
+              customer_id: selectedCustomer, 
+              shipping_address: recipientAddress || null, 
+              total_price: total, 
+              items: chi_tiet,
+              delivery_time: deliveryTime ? dayjs(deliveryTime).toISOString() : null
+            };
             await orderAPI.create(payload);
             alert('Tạo đơn hàng thành công');
             setShowAddModal(false);
@@ -447,7 +454,7 @@ const Orders = () => {
                             <p><strong>Tên khách:</strong> {customers.find(c => c.id === detail.customer_id)?.name}</p>
                             <p><strong>Số điện thoại:</strong> {customers.find(c => c.id === detail.customer_id)?.phone}</p>
                             <p><strong>Địa chỉ giao:</strong> {detail.shipping_address}</p>
-                            <p><strong>Thời gian giao:</strong> {new Date(detail.created_at || '').toLocaleString('vi-VN')}</p>
+                            <p><strong>Thời gian giao:</strong> {new Date(detail.delivery_time || detail.created_at || '').toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>
                             
                             <div style={{ marginTop: '16px', padding: '12px', background: '#f5f5f5', borderRadius: '8px' }}>
                                 <p style={{ marginBottom: '8px' }}><strong>Cập nhật trạng thái đơn hàng:</strong></p>

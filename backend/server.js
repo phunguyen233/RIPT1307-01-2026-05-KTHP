@@ -19,10 +19,17 @@ const recipesRoutes = require('./routes/recipes');
 const recipeIngredientsRoutes = require('./routes/recipeIngredients');
 const inventoryImportsRoutes = require('./routes/inventoryImports');
 const inventoryLogsRoutes = require('./routes/inventoryLogs');
+const paymentRoutes = require('./routes/payment');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString('utf8');
+  },
+}));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.get('/', (req, res) => {
@@ -31,6 +38,7 @@ app.get('/', (req, res) => {
 
 // Public routes (accessible with x-api-key header)
 app.use('/api/shops', shopsRoutes); // get shop by api key is public
+app.use('/api/payment', paymentRoutes); // VNPay payment URL generation
 
 // Routes accessible with either admin token or x-api-key (for shop-frontend)
 app.use('/api/products', verifyTokenOrApiKey, productsRoutes);
@@ -41,6 +49,7 @@ app.use('/api/orders', verifyTokenOrApiKey, ordersRoutes);
 
 // Protected routes (need admin token)
 app.use('/api/shops/admin', verifyAdminToken, shopsRoutes);
+app.use('/api/admin', verifyAdminToken, adminRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/order-items', verifyAdminToken, orderItemsRoutes);
 app.use('/api/ingredients', verifyAdminToken, ingredientsRoutes);

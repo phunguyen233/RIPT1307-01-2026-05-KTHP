@@ -18,6 +18,7 @@ export interface Order {
   total_price?: number;
   status?: 'pending' | 'completed' | 'cancelled';
   created_at?: string;
+  delivery_time?: string;
   order_items?: OrderItem[];
   items?: OrderItem[]; // for backward compatibility
   customer_name?: string;
@@ -35,7 +36,7 @@ export const orderAPI = {
     const res = await axiosClient.get(`${endpoint}/${id}`);
     return res.data;
   },
-  create: async (payload: { customer_id: number | null; shipping_address: string; total_price: number; status?: string; order_items: { product_id: number; quantity: number; price: number }[] }) => {
+  create: async (payload: { customer_id: number | null; shipping_address: string; total_price: number; status?: string; delivery_time?: string | null; order_items: { product_id: number; quantity: number; price: number }[] }) => {
     const res = await axiosClient.post(endpoint, payload);
     return res.data;
   },

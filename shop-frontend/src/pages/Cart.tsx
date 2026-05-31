@@ -67,32 +67,45 @@ export default function Cart() {
 
     try {
       let ma_khach_hang: number;
-      
+      const storedUser = localStorage.getItem('user');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      const currentUserId = currentUser?.id || null;
+
       // Create or find customer via API key
       try {
-        // Try to find existing customer by phone
         const customers = await customersAPI.getAll();
-        const existingCustomer = customers.find((c: any) => c.phone === checkoutPhone || c.so_dien_thoai === checkoutPhone);
-        
+        const existingCustomer = customers.find((c: any) =>
+          (currentUserId && c.user_id === currentUserId) ||
+          c.phone === checkoutPhone ||
+          c.so_dien_thoai === checkoutPhone
+        );
+
         if (existingCustomer) {
           ma_khach_hang = existingCustomer.id || existingCustomer.ma_khach_hang;
         } else {
-          // Create new customer
-          const newCustomer = await customersAPI.create({
+          // Create new customer with linked user_id when available
+          const customerPayload: any = {
             name: checkoutName,
             phone: checkoutPhone,
-            address: checkoutAddress
-          });
+            address: checkoutAddress,
+          };
+          if (currentUserId) {
+            customerPayload.user_id = currentUserId;
+          }
+          const newCustomer = await customersAPI.create(customerPayload);
           ma_khach_hang = newCustomer.id || newCustomer.ma_khach_hang;
         }
       } catch (customerErr) {
         console.error("Customer error:", customerErr);
-        // Try to create customer anyway
-        const newCustomer = await customersAPI.create({
+        const customerPayload: any = {
           name: checkoutName,
           phone: checkoutPhone,
-          address: checkoutAddress
-        });
+          address: checkoutAddress,
+        };
+        if (currentUserId) {
+          customerPayload.user_id = currentUserId;
+        }
+        const newCustomer = await customersAPI.create(customerPayload);
         ma_khach_hang = newCustomer.id || newCustomer.ma_khach_hang;
       }
 
@@ -103,11 +116,13 @@ export default function Cart() {
         price: c.gia_ban || c.price || 0
       }));
 
+      const deliveryTimeIso = checkoutDeliveryTime ? new Date(checkoutDeliveryTime).toISOString() : null;
       const orderRes = await ordersAPI.create({
         customer_id: ma_khach_hang,
         shipping_address: checkoutAddress,
         total_price: total,
-        items: orderItems
+        items: orderItems,
+        delivery_time: deliveryTimeIso,
       });
 
       const ma_don_hang = orderRes.id || orderRes.ma_don_hang;
@@ -123,6 +138,7 @@ export default function Cart() {
   const [checkoutName, setCheckoutName] = useState("");
   const [checkoutPhone, setCheckoutPhone] = useState("");
   const [checkoutAddress, setCheckoutAddress] = useState("");
+  const [checkoutDeliveryTime, setCheckoutDeliveryTime] = useState("");
   const [checkoutFieldErrors, setCheckoutFieldErrors] = useState<{ name?: string; phone?: string; address?: string }>({});
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [maDonHang, setMaDonHang] = useState<number | null>(null);
@@ -266,6 +282,10 @@ export default function Cart() {
                 <label className="block text-sm mb-1">Địa chỉ nhận</label>
                 <input className={`w-full border rounded px-3 py-2 ${checkoutFieldErrors.address ? 'border-red-500' : ''}`} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} />
                 {checkoutFieldErrors.address && <p className="text-red-600 text-xs mt-1">{checkoutFieldErrors.address}</p>}
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Thời gian nhận hàng</label>
+                <input type="datetime-local" className="w-full border rounded px-3 py-2" value={checkoutDeliveryTime} onChange={(e) => setCheckoutDeliveryTime(e.target.value)} />
               </div>
               <div className="flex justify-end gap-3 pt-3">
                 <button onClick={() => setShowCheckout(false)} className="px-4 py-2 bg-gray-300 rounded">Hủy</button>
