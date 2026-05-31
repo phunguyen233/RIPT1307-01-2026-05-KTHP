@@ -19,6 +19,7 @@ export const customersAPI = {
     name: string;
     phone: string;
     address?: string;
+    user_id?: number;
   }) => {
     const res = await shopApiClient.post("/customers", data);
     return res.data;

@@ -21,12 +21,27 @@ const shopApiClient = axios.create({
   headers: defaultHeaders,
 });
 
+shopApiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      if (config.headers) {
+        (config.headers as any)['Authorization'] = `Bearer ${token}`;
+      } else {
+        config.headers = { Authorization: `Bearer ${token}` } as any;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Handle response errors
 shopApiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.error("Invalid API key - please check REACT_APP_SHOP_API_KEY");
+      console.error("Invalid API key or token - please check your credentials");
     }
     return Promise.reject(error);
   }

@@ -19,6 +19,8 @@ export default function Auth() {
   const [hoTen, setHoTen] = useState("");
   const [email, setEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [registerError, setRegisterError] = useState("");
   const [registerFieldErrors, setRegisterFieldErrors] = useState<RegisterFieldErrors>({});
   const [registerSuccess, setRegisterSuccess] = useState("");
@@ -91,6 +93,8 @@ export default function Auth() {
         name: hoTen,
         email,
         mat_khau: regPassword,
+        phone,
+        address,
       });
 
       setRegisterSuccess("Đăng ký thành công.");
@@ -100,18 +104,6 @@ export default function Auth() {
         setLoginSuccess("Đăng ký thành công");
         setTimeout(() => setLoginSuccess(""), 2000);
       }, 800);
-
-      if (API_KEY) {
-        try {
-          await customersAPI.create({
-            name: hoTen,
-            phone: "",
-            address: "",
-          });
-        } catch (customerErr) {
-          console.warn("Không thêm được bản ghi khách hàng sau đăng ký:", customerErr);
-        }
-      }
     } catch (error: any) {
       const data = error?.response?.data;
       const fieldErrors = (data && (data.errors || data.fieldErrors)) || null;
@@ -336,6 +328,24 @@ export default function Auth() {
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
               />
               {registerFieldErrors.email && <p className="text-red-600 text-xs mt-1">{registerFieldErrors.email}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Số điện thoại</label>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Nhập số điện thoại"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Địa chỉ</label>
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Nhập địa chỉ"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Mật khẩu</label>

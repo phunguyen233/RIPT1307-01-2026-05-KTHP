@@ -8,6 +8,7 @@ export interface Order {
   total_price?: number;
   status?: 'pending' | 'completed' | 'cancelled';
   created_at?: string;
+  delivery_time?: string;
   order_items?: Array<{
     id?: number;
     product_id?: number;

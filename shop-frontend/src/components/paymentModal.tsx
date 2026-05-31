@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import shopApiClient from "../api/shopApiClient";
 import { useNavigate } from "react-router-dom";
 
 type Props = {
@@ -14,33 +15,59 @@ type Props = {
 export default function PaymentModal({ maDonHang = null, amount: initAmount = 0, info: initInfo = "", onClose, onCancelled, onPaid }: Props) {
   const [amount, setAmount] = useState<number>(initAmount);
   const [info, setInfo] = useState<string>(initInfo);
-  const [qrUrl, setQrUrl] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+  const [qrUrl, setQrUrl] = useState<string>("");
+  const [bankName, setBankName] = useState<string>("");
+  const [bankAccount, setBankAccount] = useState<string>("");
+  const [accountName, setAccountName] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
     if ((amount !== undefined && amount !== null) && info && info.trim() !== "") {
-      createQR();
+      createPaymentLink();
     }
   }, [amount, info]);
 
-
-  const createQR = async () => {
+  const createPaymentLink = async () => {
     if (!amount || !info) {
-      alert("Nhập số tiền và nội dung!");
+      setErrorMessage("Nhập số tiền và nội dung!");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await axios.get(`https://bepmam-backend.onrender.com/api/payment/vietqr`, {
-        params: { amount, info },
+      setErrorMessage("");
+      setPaymentMethod(null);
+      setQrUrl("");
+      // Use shop API client (provides x-api-key) to create order QR and return sepay data
+      const res = await shopApiClient.post(`/payment/sepay/checkout`, {
+        amount,
+        info,
+        orderId: maDonHang,
+        customer_id: undefined,
       });
 
-      setQrUrl(res.data.qrUrl);
+      if (res.data?.method === 'SEPAY' && res.data.qrUrl) {
+        setPaymentMethod('SEPAY');
+        setQrUrl(res.data.qrUrl);
+        setBankName(res.data.bankName || '');
+        setBankAccount(res.data.bankAccount || '');
+        setAccountName(res.data.accountName || '');
+        return;
+      }
+
+      const redirectUrl = res.data?.redirectUrl;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+
+      setErrorMessage("Không nhận được liên kết thanh toán.");
     } catch (err) {
       console.log(err);
-      alert("Lỗi tạo mã QR");
+      setErrorMessage("Lỗi tạo liên kết thanh toán. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -56,8 +83,8 @@ export default function PaymentModal({ maDonHang = null, amount: initAmount = 0,
 
     try {
       setLoading(true);
-      const res = await axios.post(`https://bepmam-backend.onrender.com/api/payment/cancel`, { ma_don_hang: maDonHang });
-      if (res.data && res.data.success) {
+      const res = await shopApiClient.post(`/payment/sepay/${maDonHang}/cancel`);
+      if (res.data && res.data.order) {
         alert("Đã hủy đơn hàng.");
         onCancelled && onCancelled(maDonHang);
         onClose && onClose();
@@ -73,44 +100,70 @@ export default function PaymentModal({ maDonHang = null, amount: initAmount = 0,
   };
 
   const markPaid = () => {
-    // If parent provided onPaid, call it so it can clear cart / update UI
-    if (onPaid) {
+    // Call backend to mark customer claimed paid (webhook will still verify)
+    (async () => {
       try {
-        onPaid(maDonHang ?? undefined);
+        if (maDonHang) {
+          await shopApiClient.post(`/payment/sepay/${maDonHang}/mark-paid`);
+        }
       } catch (e) {
-        console.error('onPaid handler error', e);
+        console.error('mark-paid error', e);
       }
-    }
-    // navigate to order history with a message
-    navigate('/orders-history', { state: { infoModal: 'vui lòng chờ đơn hàng được xác nhận.' } });
-    onClose && onClose();
+      if (onPaid) {
+        try { onPaid(maDonHang ?? undefined); } catch (e) { console.error('onPaid error', e); }
+      }
+      navigate('/orders-history', { state: { infoModal: 'vui lòng chờ đơn hàng được xác nhận.' } });
+      onClose && onClose();
+    })();
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-md w-[350px]">
-      <h2 className="text-xl font-bold mb-3">Thanh toán VietQR</h2>
-      {/* Top summary removed per request: no Close button, no top total/content */}
+    <div className="p-4 bg-white rounded-lg shadow-md w-[350px] max-w-full">
+      <h2 className="text-xl font-bold mb-3">Thanh toán {paymentMethod === 'SEPAY' ? 'SePay' : 'VNPay'}</h2>
 
-      {qrUrl && (
-        <div className="mt-4 text-center">
-            <img src={qrUrl} alt="VietQR" className="w-[250px] mx-auto rounded-lg" />
-            <div className="mt-2 text-sm text-left">
-              <div className="py-1"><strong>Ngân hàng:</strong> MB Bank</div>
-              <div className="py-1"><strong>Số tài khoản:</strong> 0945079155</div>
-              {maDonHang && <div className="py-1"><strong>Mã đơn hàng:</strong> {maDonHang}</div>}
-              <div className="py-1"><strong>Tổng tiền:</strong> {Number(amount || 0).toLocaleString()}đ</div>
-              <div className="py-1"><strong>Nội dung:</strong> {info || "(không có)"}</div>
+      {errorMessage ? (
+        <div className="rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      ) : paymentMethod === 'SEPAY' ? (
+        <div className="space-y-4 text-center">
+          <p className="text-gray-700">Quét mã QR bên dưới để chuyển khoản qua SePay.</p>
+          {qrUrl ? (
+            <div className="flex justify-center">
+              <img src={qrUrl} alt="Mã QR SePay" className="max-h-[320px] rounded-lg shadow-sm" />
             </div>
-
-            <div className="mt-3 flex justify-center gap-8">
-              <button onClick={cancelOrder} className="bg-red-600 text-white px-4 py-2 rounded" disabled={loading}>
-                Hủy đơn hàng
-              </button>
-              <button onClick={markPaid} className="bg-green-600 text-white px-4 py-2 rounded" disabled={loading}>
-                Đã thanh toán
-              </button>
-            </div>
+          ) : (
+            <p className="text-sm text-gray-500">Đang tải mã QR...</p>
+          )}
+          <div className="text-left text-sm text-gray-700">
+            <p><strong>Ngân hàng:</strong> {bankName}</p>
+            <p><strong>Số tài khoản:</strong> {bankAccount}</p>
+            <p><strong>Chủ tài khoản:</strong> {accountName}</p>
+            <p><strong>Số tiền:</strong> {Number(amount).toLocaleString()} ₫</p>
           </div>
+          <p className="text-sm text-gray-500">Sau khi chuyển khoản xong, hệ thống sẽ cập nhật trạng thái đơn hàng tự động.</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
+            <button
+              onClick={cancelOrder}
+              disabled={loading}
+              className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md"
+            >
+              Hủy giao dịch
+            </button>
+            <button
+              onClick={markPaid}
+              disabled={loading}
+              className="w-full sm:w-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+            >
+              Đã thanh toán
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 text-center">
+          <p className="text-gray-700">Đang tạo liên kết thanh toán...</p>
+          {loading && <p className="text-sm text-gray-500">Vui lòng chờ trong giây lát.</p>}
+        </div>
       )}
     </div>
   );

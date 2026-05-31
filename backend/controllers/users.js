@@ -95,7 +95,7 @@ exports.registerAdmin = async (req, res, next) => {
 // ĐĂNG KÝ KHÁCH HÀNG (chỉ cho shop-frontend và ShopAIApp)
 exports.register = async (req, res, next) => {
   try {
-    const { name, ten_dang_nhap, ho_ten, email, mat_khau, password, phone, shop_id, api_key } = req.body;
+    const { name, ten_dang_nhap, ho_ten, email, mat_khau, password, phone, address, shop_id, api_key } = req.body;
     const userName = (name || ten_dang_nhap || ho_ten || '').trim();
     const userPassword = password || mat_khau;
     const apiKeyHeader = req.headers['x-api-key'] || req.headers['X-API-Key'];
@@ -143,14 +143,27 @@ exports.register = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(userPassword, salt);
 
     // Tạo user mới với role customer
-    const result = await db.query(
+    const userResult = await db.query(
       'INSERT INTO users (name, email, password, role, shop_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, shop_id, created_at',
       [userName, email, hashedPassword, 'customer', resolvedShopId]
+    );
+    const user = userResult.rows[0];
+
+    // Create linked customer record for this user
+    const codeQuery = `SELECT COALESCE(MAX(CAST(SUBSTRING(customer_code FROM 3) AS INTEGER)), 0) + 1 AS next_number
+                       FROM customers WHERE shop_id = $1 AND customer_code LIKE 'KH%'`;
+    const codeResult = await db.query(codeQuery, [resolvedShopId]);
+    const nextNumber = codeResult.rows[0].next_number;
+    const customer_code = 'KH' + nextNumber.toString();
+
+    await db.query(
+      'INSERT INTO customers (user_id, name, phone, address, total_spent, shop_id, customer_code) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [user.id, userName, phone || null, address || null, 0, resolvedShopId, customer_code]
     );
 
     res.status(201).json({
       message: 'User registered successfully',
-      user: result.rows[0]
+      user
     });
   } catch (error) {
     next(error);
@@ -170,28 +183,46 @@ exports.login = async (req, res, next) => {
       return res.status(400).json({ error: 'Email/username and password are required' });
     }
 
-    if (!apiKeyHeader) {
-      return res.status(400).json({ error: 'Shop API key is required for login' });
-    }
+    let user;
+    let resolvedShopId = null;
 
-    const resolvedShopId = await getShopIdFromApiKey(apiKeyHeader);
-    if (!resolvedShopId) {
-      return res.status(401).json({ error: 'Invalid shop API key' });
-    }
+    if (apiKeyHeader) {
+      resolvedShopId = await getShopIdFromApiKey(apiKeyHeader);
+      if (!resolvedShopId) {
+        return res.status(401).json({ error: 'Invalid shop API key' });
+      }
 
-    // Tìm user theo email hoặc tên đăng nhập trong cùng shop
-    const result = await db.query(
-      'SELECT * FROM users WHERE (email = $1 OR name = $1) AND shop_id = $2',
-      [identifier, resolvedShopId]
-    );
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials or wrong shop' });
-    }
+      // Tìm user theo email hoặc tên đăng nhập trong cùng shop
+      const result = await db.query(
+        'SELECT * FROM users WHERE (email = $1 OR name = $1) AND shop_id = $2',
+        [identifier, resolvedShopId]
+      );
+      if (result.rows.length === 0) {
+        return res.status(401).json({ error: 'Invalid credentials or wrong shop' });
+      }
 
-    const user = result.rows[0];
+      user = result.rows[0];
 
-    if (user.role !== 'customer') {
-      return res.status(403).json({ error: 'Only customer accounts can login here' });
+      if (user.role !== 'customer') {
+        return res.status(403).json({ error: 'Only customer accounts can login here' });
+      }
+    } else {
+      // Admin login from admin frontend does not require shop API key
+      const result = await db.query(
+        'SELECT * FROM users WHERE email = $1 OR name = $1',
+        [identifier]
+      );
+      if (result.rows.length === 0) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      user = result.rows[0];
+
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: 'Only admin accounts can login here' });
+      }
+
+      resolvedShopId = user.shop_id;
     }
 
     // Kiểm tra password
