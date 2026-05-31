@@ -1,0 +1,53 @@
+.App {
+  min-height: 100vh;
+}
+
+.site-layout-header {
+  background: #001529;
+  padding: 0 24px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.site-layout-content {
+  margin: 24px;
+  padding: 24px;
+  min-height: 100vh;
+  background: #f0f2f5;
+}
+
+.page-container {
+  width: 100%;
+}
+
+.logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f0f2f5;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.ant-card {
+  border-radius: 8px;
+}

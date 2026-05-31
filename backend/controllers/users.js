@@ -218,8 +218,8 @@ exports.login = async (req, res, next) => {
 
       user = result.rows[0];
 
-      if (user.role !== 'admin') {
-        return res.status(403).json({ error: 'Only admin accounts can login here' });
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Only admin or superadmin accounts can login here' });
       }
 
       resolvedShopId = user.shop_id;

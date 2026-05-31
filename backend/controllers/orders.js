@@ -34,32 +34,22 @@ exports.getAllOrders = async (req, res, next) => {
       values = [shop_id];
     }
 
-   const result = await db.query(query, values);
-
-// lấy sản phẩm cho từng đơn
-for (const order of result.rows) {
-  const itemsResult = await db.query(
-    `SELECT
-      oi.*,
-      p.name AS product_name,
-      p.image_url AS product_image
-    FROM order_items oi
-    LEFT JOIN products p
-      ON oi.product_id = p.id
-    WHERE oi.order_id = $1`,
-    [order.id]
-  );
-
-  order.order_items = itemsResult.rows;
-}
-
-// kiểm tra dữ liệu trả về
-console.log(
-  "ORDERS API:",
-  JSON.stringify(result.rows, null, 2)
-);
-
-res.json(result.rows);
+    const result = await db.query(query, values);
+    // Fetch order_items for each order
+    const ordersWithItems = await Promise.all(
+      result.rows.map(async (order) => {
+        const itemsResult = await db.query(
+          `SELECT oi.*, p.name AS product_name, p.image_url AS product_image
+           FROM order_items oi
+           LEFT JOIN products p ON oi.product_id = p.id AND p.shop_id = $2
+           WHERE oi.order_id = $1`,
+          [order.id, shop_id]
+        );
+        return { ...order, order_items: itemsResult.rows };
+      })
+    );
+    
+    res.json(ordersWithItems);
   } catch (error) {
     next(error);
   }

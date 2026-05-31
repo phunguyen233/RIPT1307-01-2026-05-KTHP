@@ -20,6 +20,7 @@ const recipeIngredientsRoutes = require('./routes/recipeIngredients');
 const inventoryImportsRoutes = require('./routes/inventoryImports');
 const inventoryLogsRoutes = require('./routes/inventoryLogs');
 const paymentRoutes = require('./routes/payment');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 app.use(cors());
@@ -48,6 +49,7 @@ app.use('/api/orders', verifyTokenOrApiKey, ordersRoutes);
 
 // Protected routes (need admin token)
 app.use('/api/shops/admin', verifyAdminToken, shopsRoutes);
+app.use('/api/admin', verifyAdminToken, adminRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/order-items', verifyAdminToken, orderItemsRoutes);
 app.use('/api/ingredients', verifyAdminToken, ingredientsRoutes);

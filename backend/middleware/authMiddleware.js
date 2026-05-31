@@ -46,8 +46,8 @@ exports.verifyAdminToken = (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    if (decoded.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admin can access this' });
+    if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Only admin or superadmin can access this' });
     }
 
     req.user = {
