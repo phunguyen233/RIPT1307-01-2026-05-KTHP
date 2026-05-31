@@ -179,7 +179,7 @@ const Categories: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
         <div>
            <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#111', margin: 0, letterSpacing: '-0.025em' }}>Quản lý danh mục</h1>
-           <div style={{ fontSize: 14, color: '#6b7280', marginTop: 8 }}>Thêm, sửa, xóa và quản lý các danh mục sản phẩm</div>
+           <div style={{ fontSize: 14, color: '#6b7280', marginTop: 8 }}>Thêm, sửa, xóa và quản lý các danh mục sản phẩm</div>  
         </div>
         <div style={{ display: 'flex', gap: 16 }}>
            <Input

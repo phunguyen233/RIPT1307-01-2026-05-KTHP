@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Input, Select, Upload, Switch, Space, Image, message } from "antd";
-import { UploadOutlined, EditOutlined, DeleteOutlined, PlusOutlined, ReloadOutlined } from "@ant-design/icons";
+import { UploadOutlined, EditOutlined, DeleteOutlined, PlusOutlined, ReloadOutlined, EyeOutlined, FilterOutlined, AppstoreOutlined, ShoppingOutlined, InboxOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined } from "@ant-design/icons";
 import { productAPI } from "../api/productAPI";
 import { categoryAPI, Category } from "../api/categoryAPI";
 import { Product } from "../types/Product";
@@ -152,6 +152,7 @@ export default function Products() {
     try {
       setUploading(true);
       const productData = {
+        ...formData,
         ...values,
         price: Number(values.price),
         cost_price: Number(values.cost_price || 0),
@@ -294,110 +295,132 @@ export default function Products() {
       title: 'Trạng thái',
       dataIndex: 'is_active',
       key: 'is_active',
+      align: 'center' as const,
       render: (isActive: boolean, record: Product) => (
-         <Switch 
-           checked={isActive !== false} 
-           onChange={() => handleToggleProductVisibility(record.id || 0)}
-           style={{ backgroundColor: isActive !== false ? '#15803d' : '#d1d5db' }}
-         />
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: isActive !== false ? '#f0fdf4' : '#fef2f2', padding: '6px 12px', borderRadius: 20 }}>
+           <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: isActive !== false ? '#16a34a' : '#ef4444' }}></div>
+           <span style={{ color: isActive !== false ? '#16a34a' : '#ef4444', fontSize: 13, fontWeight: 500 }}>
+             {isActive !== false ? 'Đang bán' : 'Hết hàng'}
+           </span>
+        </div>
       ),
-    },
-    {
-      title: 'Đã bán',
-      key: 'sold',
-      render: (_: any, record: Product) => (
-        <span style={{ color: '#4b5563', fontWeight: 500, fontSize: 14 }}>
-          {(record.id || 0) * 17 % 200 + 50}
-        </span>
-      ),
-    },
-    {
-      title: 'Ngày tạo',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (date: string) => {
-         const displayDate = date ? new Date(date).toLocaleDateString('vi-VN') : '20/05/2025';
-         return <span style={{ color: '#4b5563', fontSize: 14 }}>{displayDate}</span>;
-      }
     },
     {
       title: 'Thao tác',
       key: 'action',
+      align: 'center' as const,
       render: (_: any, record: Product) => (
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
           <Button 
             icon={<EditOutlined style={{ color: '#16a34a' }} />} 
             onClick={() => handleEditProductClick(record)}
-            style={{ 
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 32, height: 32, padding: 0,
-              borderColor: '#bbf7d0', backgroundColor: '#fff', borderRadius: 6
-            }}
+            style={{ width: 36, height: 36, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4' }}
           />
+
           <Button 
             icon={<DeleteOutlined style={{ color: '#ef4444' }} />} 
-            onClick={() => handleDeleteProduct(record.id || 0)}
-            style={{ 
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 32, height: 32, padding: 0,
-              borderColor: '#fecaca', backgroundColor: '#fff', borderRadius: 6
+            onClick={() => {
+              Modal.confirm({
+                title: 'Xác nhận xóa',
+                content: 'Bạn có chắc chắn muốn xóa sản phẩm này?',
+                okText: 'Xóa',
+                cancelText: 'Hủy',
+                onOk: () => handleDeleteProduct(record.id || 0),
+              });
             }}
+            style={{ width: 36, height: 36, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid #fecaca', backgroundColor: '#fef2f2' }}
           />
         </div>
       ),
     },
   ];
 
-  return (
-    <div style={{ backgroundColor: '#fff', minHeight: '100vh', padding: 32, borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#111', margin: 0, letterSpacing: '-0.025em' }}>Sản phẩm</h1>
-      </div>
+  const activeCount = products.filter(p => p.is_active !== false).length;
+  const hiddenCount = products.length - activeCount;
 
-      {/* Filter Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Select 
-            value={filterCategory} 
-            onChange={(value) => setFilterCategory(value)}
-            style={{ width: 160, height: 40 }}
-            options={[
-               { value: 'all', label: 'Tất cả danh mục' },
-               ...categories.map(c => ({ value: c.id, label: c.name }))
-            ]}
-          />
-          <Select 
-            value={filterStatus} 
-            onChange={(value) => setFilterStatus(value)}
-            style={{ width: 160, height: 40 }}
-            options={[
-               { value: 'all', label: 'Tất cả trạng thái' },
-               { value: 'active', label: 'Hoạt động' },
-               { value: 'hidden', label: 'Đã ẩn' }
-            ]}
-          />
+  return (
+    <div style={{ backgroundColor: '#fff', minHeight: '100vh', padding: 32, borderRadius: 16 }}>
+      <style>{`
+        .custom-product-table .ant-table-thead > tr > th {
+          background: transparent !important;
+          border-bottom: 1px solid #f3f4f6 !important;
+          color: #4b5563 !important;
+          font-weight: 600 !important;
+          padding: 16px !important;
+        }
+        .custom-product-table .ant-table-tbody > tr > td {
+          border-bottom: 1px dashed #f3f4f6 !important;
+          padding: 16px !important;
+        }
+      `}</style>
+      
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 'bold', color: '#111', margin: 0 }}>Quản lý sản phẩm</h1>
+          <div style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>Thêm, sửa, xóa và quản lý tất cả sản phẩm của cửa hàng</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Input 
-            placeholder="Tìm theo tên sản phẩm..." 
+            placeholder="Tìm kiếm sản phẩm..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: 280, height: 40, borderRadius: 6 }}
-            suffix={
-               <div style={{ width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                     <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                  </svg>
-               </div>
-            }
+            style={{ width: 240, height: 40, borderRadius: 8 }}
+            prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
           />
+          <Button icon={<FilterOutlined />} style={{ height: 40, borderRadius: 8, display: 'flex', alignItems: 'center', fontWeight: 500, color: '#4b5563' }}>Bộ lọc</Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={handleAddProductClick}
+            style={{ backgroundColor: '#16a34a', height: 40, borderRadius: 8, fontWeight: 500, display: 'flex', alignItems: 'center', padding: '0 20px' }}
+          >
+            Thêm sản phẩm
+          </Button>
         </div>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={handleAddProductClick}
-          style={{ backgroundColor: '#16a34a', borderColor: '#16a34a', display: 'flex', alignItems: 'center', height: 40, padding: '0 20px', borderRadius: 6, fontWeight: 500, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-        >
-          Thêm sản phẩm
-        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginBottom: 32 }}>
+        {/* Card 1 */}
+        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)' }}>
+           <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AppstoreOutlined style={{ fontSize: 18, color: '#16a34a' }} />
+           </div>
+           <div>
+              <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Tổng sản phẩm</div>
+              <div style={{ color: '#111', fontSize: 24, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>{products.length}</div>
+           </div>
+        </div>
+
+        {/* Card 2 */}
+        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)' }}>
+           <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShoppingOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+           </div>
+           <div>
+              <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Đang bán</div>
+              <div style={{ color: '#111', fontSize: 24, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>{activeCount}</div>
+           </div>
+        </div>
+
+        {/* Card 3 */}
+        <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)' }}>
+           <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <InboxOutlined style={{ fontSize: 18, color: '#ef4444' }} />
+           </div>
+           <div>
+              <div style={{ color: '#6b7280', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em', textTransform: 'uppercase' }}>Hết hàng</div>
+              <div style={{ color: '#111', fontSize: 24, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>{hiddenCount}</div>
+           </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid #f3f4f6', marginBottom: 24 }}>
+         <div onClick={() => setFilterStatus('all')} style={{ cursor: 'pointer', paddingBottom: 12, borderBottom: filterStatus === 'all' ? '2px solid #16a34a' : '2px solid transparent', color: filterStatus === 'all' ? '#16a34a' : '#6b7280', fontWeight: filterStatus === 'all' ? 600 : 500, fontSize: 14 }}>Tất cả ({products.length})</div>
+         <div onClick={() => setFilterStatus('active')} style={{ cursor: 'pointer', paddingBottom: 12, borderBottom: filterStatus === 'active' ? '2px solid #16a34a' : '2px solid transparent', color: filterStatus === 'active' ? '#16a34a' : '#6b7280', fontWeight: filterStatus === 'active' ? 600 : 500, fontSize: 14 }}>Đang bán ({activeCount})</div>
+         <div onClick={() => setFilterStatus('hidden')} style={{ cursor: 'pointer', paddingBottom: 12, borderBottom: filterStatus === 'hidden' ? '2px solid #16a34a' : '2px solid transparent', color: filterStatus === 'hidden' ? '#16a34a' : '#6b7280', fontWeight: filterStatus === 'hidden' ? 600 : 500, fontSize: 14 }}>Hết hàng ({hiddenCount})</div>
       </div>
 
       <Table
