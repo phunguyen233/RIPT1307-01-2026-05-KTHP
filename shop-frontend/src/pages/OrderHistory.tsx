@@ -80,8 +80,15 @@ export default function OrderHistory() {
       setOrders((res || []).map(normalizeOrder));
     } catch (err) {
       console.error('OrderHistory error', err);
-      const msg = (err as any)?.response?.data?.message || (err as any)?.message || 'Lỗi khi lấy đơn hàng';
-      setErrorMsg(msg.toString());
+      const status = (err as any)?.response?.status;
+      if (status === 401 || status === 403) {
+        setIsAuth(false);
+        setOrders([]);
+        setErrorMsg('Vui lòng đăng nhập để xem đơn hàng của bạn.');
+      } else {
+        const msg = (err as any)?.response?.data?.message || (err as any)?.message || 'Lỗi khi lấy đơn hàng';
+        setErrorMsg(msg.toString());
+      }
     } finally {
       setLoading(false);
     }
@@ -104,8 +111,14 @@ export default function OrderHistory() {
       setSelectedOrder(normalizeOrder(res));
     } catch (err) {
       console.error('Order detail error', err);
-      const msg = (err as any)?.response?.data?.message || (err as any)?.message || 'Lỗi khi lấy chi tiết đơn hàng';
-      setErrorMsg(msg.toString());
+      const status = (err as any)?.response?.status;
+      if (status === 401 || status === 403) {
+        setIsAuth(false);
+        setErrorMsg('Vui lòng đăng nhập để xem chi tiết đơn hàng.');
+      } else {
+        const msg = (err as any)?.response?.data?.message || (err as any)?.message || 'Lỗi khi lấy chi tiết đơn hàng';
+        setErrorMsg(msg.toString());
+      }
     } finally {
       setLoading(false);
     }
