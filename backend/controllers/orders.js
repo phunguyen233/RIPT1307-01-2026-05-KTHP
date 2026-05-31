@@ -35,7 +35,21 @@ exports.getAllOrders = async (req, res, next) => {
     }
 
     const result = await db.query(query, values);
-    res.json(result.rows);
+    // Fetch order_items for each order
+    const ordersWithItems = await Promise.all(
+      result.rows.map(async (order) => {
+        const itemsResult = await db.query(
+          `SELECT oi.*, p.name AS product_name, p.image_url AS product_image
+           FROM order_items oi
+           LEFT JOIN products p ON oi.product_id = p.id AND p.shop_id = $2
+           WHERE oi.order_id = $1`,
+          [order.id, shop_id]
+        );
+        return { ...order, order_items: itemsResult.rows };
+      })
+    );
+    
+    res.json(ordersWithItems);
   } catch (error) {
     next(error);
   }
