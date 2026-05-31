@@ -368,7 +368,7 @@ export default function Products() {
             style={{ width: 240, height: 40, borderRadius: 8 }}
             prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
           />
-          <Button icon={<FilterOutlined />} style={{ height: 40, borderRadius: 8, display: 'flex', alignItems: 'center', fontWeight: 500, color: '#4b5563' }}>Bộ lọc</Button>
+
           <Button 
             type="primary" 
             icon={<PlusOutlined />} 
