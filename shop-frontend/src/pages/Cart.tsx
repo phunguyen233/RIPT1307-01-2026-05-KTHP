@@ -82,7 +82,6 @@ export default function Cart() {
 
         if (existingCustomer) {
           ma_khach_hang = existingCustomer.id || existingCustomer.ma_khach_hang;
-          try { localStorage.setItem('customer_id', String(ma_khach_hang)); } catch {}
         } else {
           // Create new customer with linked user_id when available
           const customerPayload: any = {
@@ -95,7 +94,6 @@ export default function Cart() {
           }
           const newCustomer = await customersAPI.create(customerPayload);
           ma_khach_hang = newCustomer.id || newCustomer.ma_khach_hang;
-          try { localStorage.setItem('customer_id', String(ma_khach_hang)); } catch {}
         }
       } catch (customerErr) {
         console.error("Customer error:", customerErr);
@@ -109,7 +107,6 @@ export default function Cart() {
         }
         const newCustomer = await customersAPI.create(customerPayload);
         ma_khach_hang = newCustomer.id || newCustomer.ma_khach_hang;
-        try { localStorage.setItem('customer_id', String(ma_khach_hang)); } catch {}
       }
 
       // Create order via API key
