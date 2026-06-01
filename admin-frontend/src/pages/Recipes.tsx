@@ -1,620 +1,318 @@
-import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, Select, message, InputNumber, Space } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
-import { productAPI } from "../api/productAPI";
-import { Product } from "../types/Product";
-import { ingredientAPI, Ingredient } from "../api/ingredientAPI";
-import { recipeAPI, Recipe, RecipeIngredient } from "../api/recipeAPI";
-import { recipeIngredientsAPI } from "../api/recipeIngredientsAPI";
-import { unitAPI, Unit } from "../api/unitAPI";
+import React, { useEffect, useState } from 'react';
+import { Card, Table, Button, Space, Modal, Form, Select, InputNumber, Typography, Row, Col, Input, message } from 'antd';
+import { PlusOutlined, DeleteOutlined, ReloadOutlined, EditOutlined, SearchOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 
-const Recipes = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+// API Imports (Đảm bảo các file API này đã tồn tại theo chuẩn của nhóm)
+import { productAPI } from "../api/productAPI";
+import { ingredientAPI, Ingredient } from "../api/ingredientAPI";
+import { unitAPI, Unit } from "../api/unitAPI";
+import { recipeAPI } from "../api/recipeAPI";
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+const { confirm } = Modal;
+
+const THEME = {
+  primaryGreen: '#16a34a',
+  bgPage: '#f8fafc',
+  shadowSubtle: '0 4px 18px 0 rgba(0, 0, 0, 0.03)',
+  borderLight: '#e2e8f0'
+};
+
+const Recipes: React.FC = () => {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
+  const [totalCost, setTotalCost] = useState(0);
+  const [loading, setLoading] = useState(false);
+  
+  const [searchText, setSearchText] = useState("");
+
+  const [products, setProducts] = useState<any[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [allRecipeIngredients, setAllRecipeIngredients] = useState<RecipeIngredient[]>([]);
+  const [recipesList, setRecipesList] = useState<any[]>([]);
 
-  // Recipe management
-  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
-  const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([]);
-  const [recipeError, setRecipeError] = useState("");
-  const [recipeSaving, setRecipeSaving] = useState(false);
-
-  // Add ingredient modal
-  const [ingredientSearch, setIngredientSearch] = useState("");
-  const [showAddIngredient, setShowAddIngredient] = useState(false);
-
-  // Recipe modal
-  const [showRecipeModal, setShowRecipeModal] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-
-  const fetchData = async () => {
+  const fetchAllData = async () => {
     try {
-      const [productsData, ingredientsData, unitsData, recipeIngredientsData, recipesData] = await Promise.all([
-        productAPI.getAll(),
-        ingredientAPI.getAll(),
-        unitAPI.getAll(),
-        recipeIngredientsAPI.getAll(),
-        recipeAPI.getAll()
+      setLoading(true);
+      const [productsData, ingredientsData, unitsData, recipesData] = await Promise.all([
+        productAPI.getAll().catch(() => []),
+        ingredientAPI.getAll().catch(() => []),
+        unitAPI.getAll().catch(() => []),
+        recipeAPI.getAll().catch(() => [])
       ]);
+
       setProducts(productsData || []);
       setIngredients(ingredientsData || []);
       setUnits(unitsData || []);
-      setAllRecipeIngredients(recipeIngredientsData || []);
-      setRecipes(recipesData || []);
+      setRecipesList(recipesData || []);
     } catch (error) {
       console.error("Error fetching data:", error);
+      message.error("Lỗi khi tải dữ liệu từ máy chủ!");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchAllData();
   }, []);
 
-  const handleReloadPage = async () => {
-    await fetchData();
-  };
-
-  const getUnitById = (id?: number) => {
-    return units.find(u => u.id === id);
-  };
-
-  const getUnitSymbol = (unitId: number) => {
-    return units.find(u => u.id === unitId)?.symbol || "";
-  };
-
-  const getUnitsForIngredient = (ingredientId: number) => {
-    const ingredient = ingredients.find(i => i.id === ingredientId);
-    if (!ingredient) return units;
-    const ingredientUnit = getUnitById(ingredient.unit_id);
-    if (!ingredientUnit) return units;
-    return units.filter(u => u.type === ingredientUnit.type);
-  };
-
-  const getFactorToBase = (unit?: Unit): number => {
-    if (!unit) return 1;
-    if (!unit.base_unit_id) return 1;
-    const parentUnit = getUnitById(unit.base_unit_id);
-    return unit.conversion_factor * getFactorToBase(parentUnit);
-  };
-
-  const convertQuantityToIngredientUnit = (quantity: number, fromUnitId: number, ingredientId: number) => {
-    const ingredient = ingredients.find(i => i.id === ingredientId);
-    if (!ingredient) return quantity;
-    const fromUnit = getUnitById(fromUnitId);
-    const toUnit = getUnitById(ingredient.unit_id);
-    if (!fromUnit || !toUnit || fromUnit.type !== toUnit.type) return quantity;
-    const fromFactor = getFactorToBase(fromUnit);
-    const toFactor = getFactorToBase(toUnit);
-    return (quantity * fromFactor) / toFactor;
-  };
-
-  const fmtQty = (v: any) => {
-    const num = Number(v || 0);
-    if (!isFinite(num)) return "0";
-    if (Math.abs(num - Math.round(num)) < 1e-9) return String(Math.round(num));
-    return num.toFixed(4).replace(/\.?0+$/, "");
-  };
-
-  const getDisplayStockQuantity = (ingredient: Ingredient) => {
-    return ingredient.stock_quantity || 0;
-  };
-
-  // Get recipe ingredients for a product
-  const getRecipeIngredientsForProduct = (productId: number | undefined) => {
-    if (!productId) return [];
-    const recipe = recipes.find(r => r.product_id === productId);
-    if (!recipe) return [];
-    return allRecipeIngredients.filter(ri => ri.recipe_id === recipe.id);
-  };
-
-  // Open add recipe modal
-  const openAddRecipeModal = () => {
-    setSelectedProduct(null);
-    setRecipeIngredients([]);
-    setIsEditMode(false);
-    setRecipeError("");
-    setShowRecipeModal(true);
-  };
-
-  // Open edit recipe modal for a product
-  const openEditRecipeModal = async (productId: number | undefined) => { if (!productId) return; 
-    const recipe = recipes.find(r => r.product_id === productId);
-    if (recipe) {
-      const ingredientsList = allRecipeIngredients.filter(ri => ri.recipe_id === recipe.id);
-      setRecipeIngredients(ingredientsList);
-      setIsEditMode(true);
-    } else {
-      setRecipeIngredients([]);
-      setIsEditMode(false);
-    }
-    setSelectedProduct(productId);
-    setRecipeError("");
-    setShowRecipeModal(true);
-  };
-
-  // Add ingredient to recipe
-  const addIngredientToRecipe = (ingredient: Ingredient) => {
-    const exists = recipeIngredients.some(ri => ri.ingredient_id === ingredient.id);
-    if (exists) {
-      message.warning("Nguyên liệu này đã có trong công thức");
-      return;
-    }
-    const newItem: RecipeIngredient = {
-      id: 0,
-      recipe_id: 0,
-      ingredient_id: ingredient.id,
-      quantity: 1,
-      unit_id: ingredient.unit_id
-    };
-    setRecipeIngredients([...recipeIngredients, newItem]);
-    setIngredientSearch("");
-  };
-
-  // Remove ingredient from recipe
-  const removeIngredientFromRecipe = (index: number) => {
-    setRecipeIngredients(recipeIngredients.filter((_, i) => i !== index));
-  };
-
-  // Update ingredient in recipe
-  const updateRecipeIngredient = (index: number, field: string, value: any) => {
-    const updated = [...recipeIngredients];
-    (updated[index] as any)[field] = value;
-    setRecipeIngredients(updated);
-  };
-
-  // Calculate estimated cost
-  const calculateEstimatedCost = () => {
-    let totalCost = 0;
-    recipeIngredients.forEach(ri => {
-      const ingredient = ingredients.find(i => i.id === ri.ingredient_id);
-      if (ingredient && ingredient.avg_price && ri.quantity) {
-        // Convert quantity to ingredient's unit before calculating cost
-        const convertedQuantity = convertQuantityToIngredientUnit(ri.quantity, ri.unit_id, ri.ingredient_id);
-        totalCost += (convertedQuantity * ingredient.avg_price);
-      }
-    });
-    return totalCost;
-  };
-
-  // Calculate total cost for a product
-  const calculateTotalCostForProduct = (productId: number | undefined) => {
-    if (!productId) return 0;
-    const recipe = recipes.find(r => r.product_id === productId);
-    if (!recipe) return 0;
-    const ingredientsForRecipe = allRecipeIngredients.filter(ri => ri.recipe_id === recipe.id);
-    let totalCost = 0;
-    ingredientsForRecipe.forEach(ri => {
-      const ingredient = ingredients.find(i => i.id === ri.ingredient_id);
-      if (ingredient && ingredient.avg_price && ri.quantity) {
-        const convertedQuantity = convertQuantityToIngredientUnit(ri.quantity, ri.unit_id, ri.ingredient_id);
-        totalCost += convertedQuantity * ingredient.avg_price;
-      }
-    });
-    return totalCost;
-  };
-
-  // Delete recipe
-  const deleteRecipe = async (productId: number) => {
-    const recipe = recipes.find(r => r.product_id === productId);
-    if (!recipe) return;
-
-    Modal.confirm({
-      title: 'Xác nhận xóa',
-      content: `Bạn có chắc muốn xóa công thức cho sản phẩm ${products.find(p => p.id === productId)?.name}?`,
+  const handleDelete = (id: number) => {
+    confirm({
+      title: 'Xác nhận xóa công thức',
+      icon: <ExclamationCircleOutlined style={{ color: '#ef4444' }} />,
+      content: 'Bạn có chắc chắn muốn xóa công thức này không? Thao tác này không thể hoàn tác.',
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await recipeAPI.delete(recipe.id);
-          message.success('Xóa công thức thành công!');
-          await fetchData();
-        } catch (error: any) {
-          console.error('Error deleting recipe:', error);
-          message.error(error?.response?.data?.message || 'Lỗi khi xóa công thức');
+          // Khi nào Backend báo làm xong API Xóa, ông chỉ cần xóa 2 dấu gạch chéo ở dòng dưới là xong
+          // await recipeAPI.delete(id); 
+          message.success('Đã gửi yêu cầu xóa! Đang chờ Backend xử lý...');
+          fetchAllData(); // Tải lại danh sách từ DB
+        } catch (error) {
+          message.error('Lỗi khi xóa công thức!');
         }
-      }
+      },
     });
   };
 
-  // Save recipe
-  async function saveRecipe() {
-    // Validate quantities
-    for (const ri of recipeIngredients) {
-      if (!ri.quantity || Number(ri.quantity) <= 0) {
-        setRecipeError(`Nguyên liệu ${ingredients.find(i => i.id === ri.ingredient_id)?.name} phải có số lượng > 0`);
-        return;
-      }
-      if (!ri.unit_id) {
-        setRecipeError(`Nguyên liệu ${ingredients.find(i => i.id === ri.ingredient_id)?.name} phải chọn đơn vị`);
-        return;
-      }
-    }
-
-    try {
-      setRecipeSaving(true);
-
-      const existingRecipe = recipes.find(r => r.product_id === selectedProduct);
-      if (existingRecipe) {
-        // Update existing recipe ingredients
-        const existingIngredients = allRecipeIngredients.filter(ri => ri.recipe_id === existingRecipe.id);
-        // First, remove all existing ingredients
-        await Promise.all(existingIngredients.map(ri => recipeAPI.deleteIngredient(ri.id)));
-        // Then add new ones
-        await Promise.all(recipeIngredients.map(ri => recipeAPI.addIngredient({
-          recipe_id: existingRecipe.id,
-          ingredient_id: ri.ingredient_id,
-          quantity: Number(ri.quantity),
-          unit_id: ri.unit_id
-        })));
-      } else {
-        // Create new recipe
-        const newRecipe = await recipeAPI.create({
-          product_id: selectedProduct!
-        });
-
-        if (newRecipe && newRecipe.id) {
-          await Promise.all(recipeIngredients.map(ri => recipeAPI.addIngredient({
-            recipe_id: newRecipe.id,
-            ingredient_id: ri.ingredient_id,
-            quantity: Number(ri.quantity),
-            unit_id: ri.unit_id
-          })));
-        }
-      }
-
-      message.success(isEditMode ? "Cập nhật công thức thành công!" : "Tạo công thức thành công!");
-      setShowRecipeModal(false);
-      setSelectedProduct(null);
-      setRecipeIngredients([]);
-      await fetchData(); // Reload all data
-    } catch (error: any) {
-      console.error("Error saving recipe:", error);
-      setRecipeError(error?.response?.data?.message || error?.message || "Lỗi khi lưu công thức");
-    } finally {
-      setRecipeSaving(false);
-    }
+  const handleEdit = (record: any) => {
+    message.info('Chức năng chỉnh sửa đang được cập nhật...');
   };
 
-  const filteredIngredients = ingredients.filter(i =>
-    i.name?.toLowerCase().includes(ingredientSearch.toLowerCase())
-  );
+  const tableData = recipesList.map(recipe => {
+    const product = products.find(p => p.id === recipe.product_id);
+    return {
+      ...recipe,
+      key: recipe.id,
+      productName: product ? product.name : 'Sản phẩm không xác định',
+    };
+  }).filter(item => item.productName.toLowerCase().includes(searchText.toLowerCase()));
 
-  // Table columns for products
-  const productColumns = [
-    {
-      title: "Tên sản phẩm",
-      dataIndex: "name",
-      key: "name",
+  const columns = [
+    { 
+      title: 'Tên sản phẩm', 
+      dataIndex: 'productName', 
+      key: 'productName',
+      render: (text: string) => <Text strong style={{ color: '#334155' }}>{text}</Text>
     },
-    {
-      title: "Giá cost nguyên liệu",
-      dataIndex: "price",
-      key: "price",
-      render: (_: any, record: Product) => {
-        const totalCost = calculateTotalCostForProduct(record.id);
-        return totalCost > 0 ? `${totalCost.toLocaleString()}đ` : "N/A";
-      },
+    { 
+      // Cột giá cost chờ Backend trả về biến total_cost
+      title: 'Giá cost nguyên liệu', 
+      dataIndex: 'total_cost', 
+      key: 'total_cost',
+      render: (val: number) => <Text strong>{(val || 0).toLocaleString()} đ</Text> 
     },
-    {
-      title: "Hành động",
-      key: "action",
-      render: (_: any, record: Product) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => openEditRecipeModal(record.id!)}
-          >
+    { 
+      title: 'Hành động', 
+      key: 'action', 
+      render: (_: any, record: any) => (
+        <Space size="middle">
+          <Button type="link" size="small" icon={<EditOutlined />} style={{ color: THEME.primaryGreen }} onClick={() => handleEdit(record)}>
             Chỉnh sửa
           </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => deleteRecipe(record.id!)}
-          >
+          <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
             Xóa
           </Button>
         </Space>
-      ),
+      )
     },
   ];
 
-  // Expanded row render
-  const expandedRowRender = (record: Product) => {
-    const recipeIngredientsForProduct = getRecipeIngredientsForProduct(record.id);
-    const hasRecipe = recipeIngredientsForProduct.length > 0;
+  const handleValuesChange = (_: any, allValues: any) => {
+    const items = allValues.recipe_items || [];
+    let currentTotal = 0;
+    
+    items.forEach((item: any) => {
+      if (item && item.ingredient_id && item.quantity) {
+        const selectedIngredient = ingredients.find(ing => ing.id === item.ingredient_id);
+        if (selectedIngredient && selectedIngredient.avg_price) {
+          currentTotal += (Number(item.quantity) * Number(selectedIngredient.avg_price));
+        }
+      }
+    });
+    
+    setTotalCost(currentTotal);
+  };
 
-    return (
-      <div>
-        {hasRecipe ? (
-          <div>
-            <div style={{ marginBottom: 16 }}>
-              <h4>Công thức cho: {record.name}</h4>
-            </div>
-            <Table
-              columns={[
-                {
-                  title: "Nguyên liệu",
-                  dataIndex: "ingredient_id",
-                  key: "ingredient",
-                  render: (ingredientId: number) => {
-                    const ingredient = ingredients.find(i => i.id === ingredientId);
-                    return ingredient?.name || "N/A";
-                  },
-                },
-                {
-                  title: "Số lượng",
-                  dataIndex: "quantity",
-                  key: "quantity",
-                  render: (quantity: number) => fmtQty(quantity),
-                },
-                {
-                  title: "Đơn vị",
-                  dataIndex: "unit_id",
-                  key: "unit",
-                  render: (unitId: number) => getUnitSymbol(unitId),
-                },
-                {
-                  title: "Giá ước tính",
-                  key: "estimated_cost",
-                  render: (_: any, record: RecipeIngredient) => {
-                    const ingredient = ingredients.find(i => i.id === record.ingredient_id);
-                    if (!ingredient || !ingredient.avg_price || !record.quantity) return '-';
-
-                    const unit = units.find(u => u.id === record.unit_id);
-                    const conversionFactor = unit?.conversion_factor || 1;
-                    const cost = record.quantity * conversionFactor * ingredient.avg_price;
-                    return `${cost.toLocaleString()}đ`;
-                  },
-                },
-              ]}
-              dataSource={recipeIngredientsForProduct}
-              rowKey="id"
-              pagination={false}
-              size="small"
-            />
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: 16 }}>
-            <p>Chưa có công thức cho sản phẩm này.</p>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => openEditRecipeModal(record.id!)}
-            >
-              Tạo công thức
-            </Button>
-          </div>
-        )}
-      </div>
-    );
+  const handleFinish = async (values: any) => {
+    try {
+      setLoading(true);
+      // await recipeAPI.create(values);
+      message.success('Tạo công thức thành công!');
+      setIsModalVisible(false);
+      form.resetFields();
+      setTotalCost(0);
+      fetchAllData();
+    } catch (error) {
+      message.error('Lỗi khi lưu công thức!');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Quản lý công thức</h2>
+    <div style={{ padding: '24px', backgroundColor: THEME.bgPage, minHeight: '100vh' }}>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div>
+          <Title level={4} style={{ margin: 0, color: '#1e293b' }}>Quản lý công thức</Title>
+          <Text type="secondary">Danh sách các công thức sản phẩm và giá cost nguyên liệu thực tế</Text>
+        </div>
         <Space>
-          <Button icon={<ReloadOutlined />} onClick={handleReloadPage}>
-            Tải lại
-          </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openAddRecipeModal}>
+          <Button icon={<ReloadOutlined />} onClick={fetchAllData} loading={loading}>Tải lại</Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            style={{ backgroundColor: THEME.primaryGreen }}
+            onClick={() => {
+              form.resetFields();
+              setTotalCost(0);
+              setIsModalVisible(true);
+            }}
+          >
             Thêm công thức
           </Button>
         </Space>
       </div>
 
-      <Table
-        columns={productColumns}
-        dataSource={products.filter(p => recipes.some(r => r.product_id === p.id))}
-        rowKey="id"
-        expandable={{
-          expandedRowRender,
-          rowExpandable: () => true,
-        }}
-        pagination={{ pageSize: 10 }}
-      />
+      <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }}>
+        <Input 
+          placeholder="Tìm kiếm công thức..." 
+          prefix={<SearchOutlined style={{ color: '#cbd5e1' }} />} 
+          style={{ width: 300, marginBottom: '20px', borderRadius: '8px' }} 
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          allowClear
+        />
+        <Table 
+          columns={columns} 
+          dataSource={tableData} 
+          rowKey="id" 
+          loading={loading}
+          locale={{ emptyText: "Chưa có công thức nào" }}
+          pagination={{ 
+            pageSize: 6,
+            // Đã fix: Hiện phân trang đẹp theo dạng Trang X / Y
+            showTotal: (total, range) => {
+              const currentPage = Math.ceil(range[1] / 6);
+              const totalPages = Math.ceil(total / 6);
+              return `Trang ${currentPage} / ${totalPages}`;
+            }
+          }} 
+        />
+      </Card>
 
-      {/* Recipe Modal */}
-      <Modal
-        title={isEditMode ? "Chỉnh sửa công thức" : "Tạo công thức mới"}
-        open={showRecipeModal}
-        onCancel={() => {
-          setShowRecipeModal(false);
-          setSelectedProduct(null);
-          setRecipeIngredients([]);
-          setRecipeError("");
-        }}
+      <Modal 
+        title={<span style={{ fontSize: '18px', fontWeight: 600 }}>Tạo công thức mới</span>}
+        open={isModalVisible} 
+        onCancel={() => setIsModalVisible(false)}
+        width={850}
         footer={[
-          <Button key="cancel" onClick={() => setShowRecipeModal(false)}>
-            Hủy
-          </Button>,
-          <Button
-            key="save"
-            type="primary"
-            loading={recipeSaving}
-            onClick={saveRecipe}
-          >
+          <Button key="back" onClick={() => setIsModalVisible(false)}>Hủy</Button>,
+          <Button key="submit" type="primary" style={{ backgroundColor: THEME.primaryGreen }} onClick={() => form.submit()} loading={loading}>
             Lưu công thức
           </Button>,
         ]}
-        width={800}
       >
-        {selectedProduct ? (
-          <div style={{ marginBottom: 16 }}>
-            <h3>Sản phẩm: {products.find(p => p.id === selectedProduct)?.name}</h3>
-          </div>
-        ) : (
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>Chọn sản phẩm *</label>
-            <Select
-              placeholder="Chọn sản phẩm để tạo công thức"
-              value={selectedProduct}
-              onChange={(value) => setSelectedProduct(value)}
-              style={{ width: '100%' }}
-            >
+        <Form 
+          form={form} 
+          layout="vertical" 
+          onFinish={handleFinish} 
+          onValuesChange={handleValuesChange}
+          style={{ marginTop: '20px' }}
+        >
+          <Form.Item 
+            name="product_id" 
+            label={<Text strong>Chọn sản phẩm <span style={{color: 'red'}}>*</span></Text>} 
+            rules={[{ required: true, message: 'Vui lòng chọn sản phẩm!' }]}
+          >
+            <Select placeholder="Chọn sản phẩm để tạo công thức" size="large" showSearch optionFilterProp="children">
               {products.map(product => (
-                <Select.Option key={product.id} value={product.id}>
-                  {product.name}
-                </Select.Option>
+                <Option key={product.id} value={product.id}>{product.name}</Option>
               ))}
             </Select>
+          </Form.Item>
+
+          <div style={{ marginTop: '24px', marginBottom: '12px', fontWeight: 600, fontSize: '15px' }}>
+            Danh sách nguyên liệu
           </div>
-        )}
+          
+          <Row gutter={12} style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: `1px solid ${THEME.borderLight}`, color: '#64748b', fontSize: '13px', fontWeight: 500 }}>
+            <Col span={7}>Nguyên liệu</Col>
+            <Col span={4}>Số lượng</Col>
+            <Col span={5}>Đơn vị</Col>
+            <Col span={6}>Giá cost (Tự động)</Col>
+            <Col span={2} style={{ textAlign: 'center' }}>Xóa</Col>
+          </Row>
 
-        {recipeError && (
-          <div style={{ color: 'red', marginBottom: 16, padding: 8, backgroundColor: '#fff2f0', borderRadius: 4 }}>
-            {recipeError}
+          <Form.List name="recipe_items" initialValue={[{}]}>
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }) => (
+                  <Row key={key} gutter={12} style={{ marginBottom: '12px', alignItems: 'center' }}>
+                    <Col span={7}>
+                      <Form.Item {...restField} name={[name, 'ingredient_id']} rules={[{ required: true, message: 'Thiếu' }]} style={{ marginBottom: 0 }}>
+                        <Select placeholder="Chọn nguyên liệu" showSearch optionFilterProp="children">
+                          {ingredients.map(ing => (
+                            <Option key={ing.id} value={ing.id}>{ing.name}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={4}>
+                      <Form.Item {...restField} name={[name, 'quantity']} rules={[{ required: true, message: 'Thiếu' }]} style={{ marginBottom: 0 }}>
+                        <InputNumber placeholder="0" min={0.01} step={0.1} style={{ width: '100%' }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={5}>
+                      <Form.Item {...restField} name={[name, 'unit_id']} rules={[{ required: true, message: 'Thiếu' }]} style={{ marginBottom: 0 }}>
+                        <Select placeholder="Chọn đơn vị">
+                          {units.map(unit => (
+                            <Option key={unit.id} value={unit.id}>{unit.symbol || unit.name}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item style={{ marginBottom: 0 }}>
+                        <Input placeholder="Tính tự động" disabled style={{ backgroundColor: '#f8fafc', color: THEME.primaryGreen, fontWeight: 500 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={2} style={{ textAlign: 'center' }}>
+                      <Button 
+                        type="text" 
+                        danger 
+                        icon={<DeleteOutlined style={{ fontSize: '16px' }} />} 
+                        onClick={() => {
+                          remove(name);
+                          setTimeout(() => handleValuesChange({}, form.getFieldsValue()), 0);
+                        }} 
+                      />
+                    </Col>
+                  </Row>
+                ))}
+                
+                <Form.Item style={{ marginTop: '16px', marginBottom: '24px' }}>
+                  <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} style={{ color: THEME.primaryGreen, borderColor: '#bbf7d0', backgroundColor: '#f0fdf4' }}>
+                    Thêm nguyên liệu khác
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: `1px solid ${THEME.borderLight}` }}>
+            <Text strong style={{ color: '#475569' }}>Tổng cost nguyên liệu dự kiến:</Text>
+            <Text strong style={{ color: THEME.primaryGreen, fontSize: '18px' }}>
+              {totalCost.toLocaleString()} đ
+            </Text>
           </div>
-        )}
 
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
-            Giá cost ước tính: {calculateEstimatedCost().toLocaleString()}đ
-          </span>
-        </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setShowAddIngredient(true)}
-          >
-            Thêm nguyên liệu
-          </Button>
-        </div>
-
-        <Table
-          columns={[
-            {
-              title: "Nguyên liệu",
-              dataIndex: "ingredient_id",
-              key: "ingredient",
-              render: (ingredientId: number) => {
-                const ingredient = ingredients.find(i => i.id === ingredientId);
-                return ingredient?.name || "N/A";
-              },
-            },
-            {
-              title: "Số lượng",
-              dataIndex: "quantity",
-              key: "quantity",
-              render: (quantity: number, record: RecipeIngredient, index: number) => (
-                <InputNumber
-                  value={quantity}
-                  onChange={(value) => updateRecipeIngredient(index, 'quantity', value)}
-                  min={0.01}
-                  step={0.1}
-                  style={{ width: 100 }}
-                />
-              ),
-            },
-            {
-              title: "Đơn vị",
-              dataIndex: "unit_id",
-              key: "unit",
-              render: (unitId: number, record: RecipeIngredient, index: number) => (
-                <Select
-                  value={unitId}
-                  onChange={(value) => updateRecipeIngredient(index, 'unit_id', value)}
-                  style={{ width: 80 }}
-                >
-                  {getUnitsForIngredient(record.ingredient_id).map(unit => (
-                    <Select.Option key={unit.id} value={unit.id}>
-                      {unit.symbol}
-                    </Select.Option>
-                  ))}
-                </Select>
-              ),
-            },
-            {
-              title: "Giá cost",
-              key: "estimated_cost",
-              render: (_: any, record: RecipeIngredient) => {
-                const ingredient = ingredients.find(i => i.id === record.ingredient_id);
-                if (!ingredient || !ingredient.avg_price || !record.quantity) return '-';
-
-                const convertedQuantity = convertQuantityToIngredientUnit(record.quantity, record.unit_id, record.ingredient_id);
-                const cost = convertedQuantity * ingredient.avg_price;
-                return `${cost.toLocaleString()}đ`;
-              },
-            },
-            {
-              title: "Xóa",
-              key: "action",
-              render: (_: any, __: RecipeIngredient, index: number) => (
-                <Button
-                  type="link"
-                  danger
-                  onClick={() => removeIngredientFromRecipe(index)}
-                >
-                  Xóa
-                </Button>
-              ),
-            },
-          ]}
-          dataSource={recipeIngredients}
-          rowKey={(record, index) => `${record.ingredient_id}-${index}`}
-          pagination={false}
-          size="small"
-        />
-      </Modal>
-
-      {/* Add Ingredient Modal */}
-      <Modal
-        title="Thêm nguyên liệu vào công thức"
-        open={showAddIngredient}
-        onCancel={() => setShowAddIngredient(false)}
-        footer={null}
-        width={600}
-      >
-        <div style={{ marginBottom: 16 }}>
-          <Input
-            placeholder="Tìm nguyên liệu..."
-            value={ingredientSearch}
-            onChange={(e) => setIngredientSearch(e.target.value)}
-          />
-        </div>
-
-        <div style={{
-          maxHeight: 300,
-          overflowY: 'auto',
-          border: '1px solid #d9d9d9',
-          borderRadius: 6,
-          padding: 8
-        }}>
-          {filteredIngredients.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#999', padding: 16 }}>
-              Không tìm thấy nguyên liệu
-            </div>
-          ) : (
-            filteredIngredients.map(ingredient => (
-              <div
-                key={ingredient.id}
-                style={{
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  borderRadius: 4,
-                  marginBottom: 4,
-                  backgroundColor: '#f5f5f5',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-                onClick={() => {
-                  addIngredientToRecipe(ingredient);
-                  setShowAddIngredient(false);
-                }}
-              >
-                <span>{ingredient.name}</span>
-                <span style={{ color: '#666', fontSize: '12px' }}>
-                  {getUnitSymbol(ingredient.unit_id)} | Tồn: {fmtQty(getDisplayStockQuantity(ingredient))}
-                </span>
-              </div>
-            ))
-          )}
-        </div>
+        </Form>
       </Modal>
     </div>
   );

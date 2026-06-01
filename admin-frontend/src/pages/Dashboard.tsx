@@ -12,7 +12,7 @@ import {
   InfoCircleOutlined
 } from '@ant-design/icons';
 
-// Import API
+// API Imports
 import { ingredientAPI } from '../api/ingredientAPI'; 
 import { productAPI } from '../api/productAPI';
 import { orderAPI } from '../api/orderAPI';
@@ -20,6 +20,7 @@ import { orderAPI } from '../api/orderAPI';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+// Theme configuration for the dashboard
 const THEME = {
   primaryGreen: '#16a34a',
   lightGreenBg: '#f0fdf4',
@@ -33,6 +34,7 @@ const THEME = {
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   
+  // State variables for dashboard metrics
   const [totalProducts, setTotalProducts] = useState<number>(0); 
   const [totalOrders, setTotalOrders] = useState<number>(0);     
   const [totalIngredients, setTotalIngredients] = useState<number>(0);
@@ -44,6 +46,7 @@ const Dashboard: React.FC = () => {
   const [realBestSellers, setRealBestSellers] = useState<any[]>([]);
   const [salesActivities, setSalesActivities] = useState<any[]>([]);
 
+  // State variables for SVG chart
   const [chartData, setChartData] = useState<{day: string, value: number, x: number, y: number}[]>([]);
   const [chartMax, setChartMax] = useState<number>(1000000);
 
@@ -54,44 +57,49 @@ const Dashboard: React.FC = () => {
         let fetchedProducts: any[] = [];
         let fetchedOrders: any[] = [];
 
-        // 1. Kho nguyên liệu
+        // 1. Fetch Ingredients Data (Inventory tracking)
         try {
           const resIng = await ingredientAPI.getAll();
           if (Array.isArray(resIng)) {
             setTotalIngredients(resIng.length);
+            // Count items with stock lower than threshold (250)
             const lowStockItems = resIng.filter((item: any) => (item.stock_quantity || 0) < 250);
             setLowStockCount(lowStockItems.length);
           }
         } catch (e) { console.error(e); }
 
-        // 2. Sản phẩm
+        // 2. Fetch Products Data
         try {
           const resProd = await productAPI.getAll();
           if (Array.isArray(resProd)) {
             fetchedProducts = resProd;
             setTotalProducts(resProd.length);
+            // Calculate total catalog value
             const sumValue = resProd.reduce((sum, p) => sum + (Number(p.price) || 0), 0);
             setTotalProductValue(sumValue);
           }
         } catch (e) { console.error(e); }
 
-        // 3. Đơn hàng & Log buôn bán
+        // 3. Fetch Orders & Sales Logs
         try {
           const resOrder = await orderAPI.getAll();
           if (Array.isArray(resOrder)) {
             fetchedOrders = resOrder;
             setTotalOrders(resOrder.length);
 
+            // Calculate total revenue from completed orders only
             const doanhThu = resOrder.reduce((sum, order) => {
               if (order.status === 'completed') return sum + (Number(order.total_price) || 0);
               return sum;
             }, 0);
             setTotalRevenue(doanhThu);
 
+            // Sort orders by created date (newest first)
             const sortedOrders = [...resOrder].sort((a, b) => 
               new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
             );
 
+            // Prepare latest 5 orders for the table
             const top5Orders = sortedOrders.slice(0, 5).map((order) => {
               let statusText = 'Đang xử lý'; let color = 'warning';
               if (order.status === 'completed') { statusText = 'Đã hoàn thành'; color = 'success'; } 
@@ -107,6 +115,7 @@ const Dashboard: React.FC = () => {
             });
             setRealOrderData(top5Orders);
 
+            // Prepare latest activities log
             const activities = sortedOrders.slice(0, 5).map(order => {
               const customer = order.customer_name || 'Khách vãng lai';
               const total = (Number(order.total_price) || 0).toLocaleString() + ' đ';
@@ -126,7 +135,7 @@ const Dashboard: React.FC = () => {
           }
         } catch (e) { console.error(e); }
 
-        // 4. Sản phẩm bán chạy
+        // 4. Calculate Best Selling Products based on completed orders
         if (fetchedOrders.length > 0 && fetchedProducts.length > 0) {
           const productSalesCount: Record<number, number> = {};
           
@@ -141,6 +150,7 @@ const Dashboard: React.FC = () => {
             }
           });
 
+          // Map the sales count back to products and format with real image URL
           const bestSellersData = fetchedProducts.map(product => {
             const totalSold = productSalesCount[product.id] || 0;
             return {
@@ -148,13 +158,14 @@ const Dashboard: React.FC = () => {
               sold: `${totalSold} món`,
               soldCount: totalSold,
               percent: Math.min((totalSold / 50) * 100, 100),
-              img: '🔥' 
+              // Retrieve image_url from database, fallback to a placeholder if it doesn't exist
+              img: product.image_url || 'https://placehold.co/100x100?text=No+Img' 
             };
           }).filter(item => item.soldCount > 0).sort((a, b) => b.soldCount - a.soldCount).slice(0, 5);
           setRealBestSellers(bestSellersData);
         }
 
-        // 5. Biểu đồ 7 ngày
+        // 5. Generate 7-Days Revenue Chart Data
         const last7Days = Array.from({length: 7}).map((_, i) => {
           const d = new Date();
           d.setDate(d.getDate() - (6 - i));
@@ -164,6 +175,7 @@ const Dashboard: React.FC = () => {
         const dailyRevenue: Record<string, number> = {};
         last7Days.forEach(d => dailyRevenue[d] = 0);
 
+        // Aggregate revenue per day
         fetchedOrders.forEach(order => {
           if (order.status === 'completed' && order.created_at) {
             const orderDate = new Date(order.created_at).toISOString().split('T')[0];
@@ -176,6 +188,7 @@ const Dashboard: React.FC = () => {
         const maxRev = Math.max(...Object.values(dailyRevenue), 100000); 
         setChartMax(maxRev);
 
+        // Chart coordinates calculation for SVG
         const xCoords = [50, 170, 290, 410, 530, 650, 770];
         const newChartData = last7Days.map((day, idx) => {
           const val = dailyRevenue[day];
@@ -197,6 +210,20 @@ const Dashboard: React.FC = () => {
     fetchAllDashboardData();
   }, []);
 
+  // Helper function to generate a smooth curve (Cubic Bezier) for the SVG chart
+  const generateSmoothCurve = (data: {x: number, y: number}[]) => {
+    if (data.length === 0) return '';
+    let path = `M ${data[0].x} ${data[0].y}`;
+    for (let i = 1; i < data.length; i++) {
+      const prev = data[i - 1];
+      const curr = data[i];
+      const cpX = (prev.x + curr.x) / 2; // Control point for smoothing
+      path += ` C ${cpX} ${prev.y}, ${cpX} ${curr.y}, ${curr.x} ${curr.y}`;
+    }
+    return path;
+  };
+
+  // Table columns configuration for Latest Orders
   const orderColumns = [
     { title: 'Mã đơn hàng', dataIndex: 'id', key: 'id', render: (text: string) => <Text strong style={{ color: '#0f172a' }}>{text}</Text> },
     { title: 'Khách hàng', dataIndex: 'customer', key: 'customer' },
@@ -209,6 +236,7 @@ const Dashboard: React.FC = () => {
   return (
     <div style={{ padding: '0 24px 24px 24px', backgroundColor: THEME.bgPage, minHeight: '100vh' }}>
       
+      {/* Header Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `1px solid ${THEME.borderLight}`, marginBottom: '24px' }}>
         <Title level={4} style={{ color: THEME.textDark, margin: 0, fontWeight: 600, fontSize: '18px' }}>Bảng điều khiển hệ thống</Title>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -221,6 +249,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Top Statistic Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }}>
@@ -264,7 +293,10 @@ const Dashboard: React.FC = () => {
         </Col>
       </Row>
 
+      {/* Main Content Area */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+        
+        {/* Revenue SVG Chart */}
         <Col xs={24} xl={16}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<Space size={6}><span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>Doanh thu 7 ngày qua</span><InfoCircleOutlined style={{ color: '#cbd5e1', fontSize: '13px' }} /></Space>}>
             <div style={{ width: '100%', height: '240px' }}>
@@ -280,8 +312,13 @@ const Dashboard: React.FC = () => {
                 <text x="35" y="124" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.5) / 1000).toLocaleString()}k</text>
                 <text x="35" y="174" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.25) / 1000).toLocaleString()}k</text>
                 <text x="35" y="224" fill="#94a3b8" fontSize="11" textAnchor="end">0</text>
-                {chartData.length > 0 && <path d={`M 50 ${chartData[0].y} ${chartData.map((d, i) => i > 0 ? `L ${d.x} ${d.y}` : '').join(' ')} L 770 220 L 50 220 Z`} fill="url(#chartGradient)" />}
-                {chartData.length > 0 && <path d={`M 50 ${chartData[0].y} ${chartData.map((d, i) => i > 0 ? `L ${d.x} ${d.y}` : '').join(' ')}`} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                
+                {/* Render the smooth gradient area */}
+                {chartData.length > 0 && <path d={`${generateSmoothCurve(chartData)} L 770 220 L 50 220 Z`} fill="url(#chartGradient)" />}
+                
+                {/* Render the smooth stroke line */}
+                {chartData.length > 0 && <path d={generateSmoothCurve(chartData)} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                
                 {chartData.map((d, i) => <circle key={`circle-${i}`} cx={d.x} cy={d.y} r="5" fill="#16a34a" stroke="#fff" strokeWidth="2" />)}
                 {chartData.map((d, i) => <text key={`text-${i}`} x={d.x} y="238" fill="#94a3b8" fontSize="11" textAnchor="middle">{d.day}</text>)}
               </svg>
@@ -289,6 +326,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
 
+        {/* Inventory Overview */}
         <Col xs={24} xl={8}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle, height: '100%' }} title={<span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>Tổng quan dữ liệu kho</span>}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', gap: '22px' }}>
@@ -319,18 +357,28 @@ const Dashboard: React.FC = () => {
       </Row>
 
       <Row gutter={[16, 16]}>
+        
+        {/* Latest Orders Table */}
         <Col xs={24} lg={10}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<span style={{ fontSize: '14px', fontWeight: 600 }}>Đơn hàng mới nhất</span>}>
             <Table columns={orderColumns} dataSource={realOrderData} pagination={false} size="small" style={{ borderRadius: '8px', overflow: 'hidden' }} locale={{ emptyText: "Chưa có đơn hàng nào" }} />
           </Card>
         </Col>
+
+        {/* Best Sellers Section */}
         <Col xs={24} sm={12} lg={7}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<span style={{ fontSize: '14px', fontWeight: 600 }}>Sản phẩm bán chạy</span>}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {realBestSellers.length === 0 ? <div style={{ textAlign: 'center', color: THEME.textSecondary, padding: '20px 0' }}>Chưa ghi nhận số liệu bán lẻ</div> : 
                 realBestSellers.map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '18px', backgroundColor: '#f1f5f9', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{item.img}</span>
+                    {/* Render actual product image */}
+                    <img 
+                      src={item.img} 
+                      alt={item.name} 
+                      style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: '1px solid #e2e8f0' }} 
+                      onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100?text=Error'; }} 
+                    />
                     <div style={{ flex: 1 }}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '2px' }}><Text strong style={{ color: '#334155' }}>{item.name}</Text><Text type="success" strong>{item.sold}</Text></div><Progress percent={item.percent} strokeColor={THEME.primaryGreen} showInfo={false} size="small" trailColor="#f1f5f9" strokeWidth={5} /></div>
                   </div>
                 ))
@@ -338,6 +386,8 @@ const Dashboard: React.FC = () => {
             </div>
           </Card>
         </Col>
+
+        {/* Sales Activities Log */}
         <Col xs={24} sm={12} lg={7}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<span style={{ fontSize: '14px', fontWeight: 600 }}>Hoạt động buôn bán</span>}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0' }}>
@@ -354,6 +404,7 @@ const Dashboard: React.FC = () => {
         </Col>
       </Row>
 
+      {/* Footer Connection Status */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', backgroundColor: THEME.lightGreenBg, borderRadius: '10px', marginTop: '24px', boxShadow: '0 2px 8px rgba(22, 163, 74, 0.04)' }}>
         <Text style={{ color: '#047857', fontSize: '13px', fontWeight: 500 }}>🌿 <Text strong style={{ color: '#047857' }}>Trạng thái kết nối</Text> • Đã liên kết thành công các nhánh Kho, Nguyên liệu và Đơn hàng</Text>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ fontSize: '15px', fontWeight: '700', color: '#047857', letterSpacing: '-0.3px' }}>Hệ thống trực tuyến</span><div style={{ backgroundColor: '#d1fae5', padding: '3px 6px', borderRadius: '4px', display: 'flex', alignItems: 'center' }}><ArrowUpOutlined style={{ color: '#047857', fontSize: '12px' }} /></div></div>
