@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, Select, Space, message, DatePicker, InputNumber, Tag } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Table, Button, Modal, Form, Input, Select, Space, message, DatePicker, InputNumber, Tag , Card, Dropdown } from "antd";
+import { EditOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, ReloadOutlined, UserOutlined,  PhoneOutlined, EnvironmentOutlined, CalendarOutlined, MoreOutlined, ShoppingCartOutlined,  ClockCircleOutlined, CheckCircleOutlined,  CloseCircleOutlined, } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import { orderAPI, Order } from "../api/orderAPI";
 import { productAPI } from "../api/productAPI";
@@ -99,23 +99,110 @@ const Orders = () => {
 
     const columns = [
         {
-            title: "Mã đơn",
-            dataIndex: "order_code",
-            key: "order_code",
-            render: (code: string) => code || "N/A",
-        },
+    title: "Mã đơn",
+    dataIndex: "order_code",
+    key: "order_code",
+    render: (_: any, record: any) => {
+        const statusConfig: any = {
+            pending: {
+                color: "#faad14",
+                bg: "#fff7e6",
+                text: "Chờ xác nhận"
+            },
+            completed: {
+                color: "#22aa44",
+                bg: "#f6ffed",
+                text: "Đã hoàn thành"
+            },
+            cancelled: {
+                color: "#ff4d4f",
+                bg: "#fff1f0",
+                text: "Đã hủy"
+            }
+        };
+
+        const current =
+            statusConfig[record.status] ||
+            statusConfig.pending;
+
+        return (
+            <div>
+                <div
+                    style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: "#111827"
+                    }}
+                >
+                    {record.order_code}
+                </div>
+
+                <div
+                    style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 6,
+                        padding: "4px 12px",
+                        borderRadius: 20,
+                        background: current.bg,
+                        color: current.color,
+                        fontWeight: 600,
+                        fontSize: 13
+                    }}
+                >
+                    ● {current.text}
+                </div>
+            </div>
+        );
+    }
+},
         {
-            title: "Tên khách",
-            dataIndex: "customer_name",
-            key: "customer_name",
-            render: (name: string) => name || "N/A",
-        },
-        {
-            title: "Số điện thoại khách",
-            dataIndex: "customer_phone",
-            key: "customer_phone",
-            render: (phone: string) => phone || "N/A",
-        },
+    title: "Khách hàng",
+    key: "customer",
+    width: 220,
+    render: (_: any, record: any) => (
+        <div>
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 8
+                }}
+            >
+                <UserOutlined
+                    style={{
+                        color: "#6b7280"
+                    }}
+                />
+
+                <span
+                    style={{
+                        fontWeight: 500
+                    }}
+                >
+                    {record.customer_name || "N/A"}
+                </span>
+            </div>
+
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    color: "#6b7280"
+                }}
+            >
+                <PhoneOutlined />
+
+                <span>
+                    {record.customer_phone || "N/A"}
+                </span>
+            </div>
+        </div>
+    ),
+},
         {
             title: "Thời gian nhận",
             dataIndex: "delivery_time",
@@ -123,31 +210,118 @@ const Orders = () => {
             render: (date: string) => date ? new Date(date).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : "Chưa xác định",
         },
         {
-            title: "Địa chỉ nhận",
-            dataIndex: "shipping_address",
-            key: "shipping_address",
-        },
+    title: "Địa chỉ",
+    dataIndex: "shipping_address",
+    key: "shipping_address",
+    width: 250,
+    render: (address: string) => (
+        <div>
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 8
+                }}
+            >
+                <EnvironmentOutlined
+                    style={{
+                        color: "#6b7280"
+                    }}
+                />
+
+                <span>{address}</span>
+            </div>
+
+            <div
+                style={{
+                    color: "#6b7280"
+                }}
+            >
+                Hà Nội, Việt Nam
+            </div>
+        </div>
+    )
+},
         {
-            title: "Tổng tiền",
+            title: " ",
             dataIndex: "total_price",
             key: "total_price",
-            render: (amount: number) => `${amount?.toLocaleString("vi-VN")}₫` || "0₫",
+           render: (amount: number) => (
+    <div>
+        <div
+            style={{
+                color: "#22aa44",
+                fontSize: 15,
+                fontWeight: 500
+            }}
+        >
+            {amount?.toLocaleString("vi-VN")}₫
+        </div>
+
+        <div
+            style={{
+                color: "#6b7280",
+                fontSize: 10
+            }}
+        >
+            COD
+        </div>
+    </div>
+),
         },
-        {
-            title: "Hành động",
-            key: "action",
-            render: (_: any, record: Order) => (
-                <Space size="middle">
-                    <Button
-                        type="link"
-                        icon={<EyeOutlined />}
-                        onClick={() => handleViewDetail(record)}
-                    >
-                        Chi tiết
-                    </Button>
-                </Space>
-            ),
-        },
+        
+{
+  title: " ",
+  key: "action",
+  render: (_: any, record: Order) => (
+    <Space>
+      {/* Nút xem chi tiết */}
+      <Button
+        type="link"
+        icon={<EyeOutlined />}
+        onClick={() => handleViewDetail(record)}
+      >
+        Xem chi tiết
+      </Button>
+
+      {/* Nút 3 chấm */}
+      <Dropdown
+        menu={{
+          items: [
+            {
+              key: "pending",
+              label: "Chờ xử lý",
+            },
+            {
+              key: "completed",
+              label: "Hoàn thành",
+            },
+            {
+              key: "cancelled",
+              label: "Đã hủy",
+            },
+          ],
+          onClick: async ({ key }) => {
+            try {
+              await orderAPI.updateStatus(record.id!, key);
+              message.success("Cập nhật trạng thái thành công");
+              fetchOrders();
+            } catch {
+              message.error("Cập nhật thất bại");
+            }
+          },
+        }}
+        trigger={["click"]}
+      >
+        <Button
+          icon={<MoreOutlined />}
+          shape="circle"
+        />
+      </Dropdown>
+    </Space>
+  ),
+},
     ];
 
     const openAddModal = async () => {
@@ -391,11 +565,39 @@ const Orders = () => {
         }
         return true;
     });
+    const totalOrders = orders.length;
 
+    const pendingOrders = orders.filter(
+        order => order.status === "pending"
+    ).length;
+
+    const completedOrders = orders.filter(
+        order => order.status === "completed"
+    ).length;
+
+    const cancelledOrders = orders.filter(
+        order => order.status === "cancelled"
+    ).length;
     return (
+        <Card
+        bordered={false}
+        style={{
+            borderRadius: 20,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)"
+        }}
+        >
+        
+
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Quản lý đơn hàng</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <h2 style={{
+                    fontSize: 32,
+                    fontWeight: 700,
+                    margin: 0,
+                    color: "#111827"
+                    }}
+                    >
+                        Quản lý đơn hàng</h2>
                 <Space>
                     <Button icon={<ReloadOutlined />} onClick={handleReloadPage}>
                         Tải lại
@@ -404,19 +606,35 @@ const Orders = () => {
                         type="primary"
                         icon={<PlusOutlined />}
                         onClick={openAddModal}
+                        style= {{   
+                            background: "#22aa44",
+                            borderColor: "#22aa44",
+                            borderRadius: 10,
+                            fontWeight: 600
+                        }}
                     >
                         Thêm đơn hàng
                     </Button>
                 </Space>
             </div>
 
-            <div style={{ marginBottom: 16, display: 'flex', gap: 16 }}>
+            <div style={{ 
+                marginBottom: 24,
+                display: 'flex',
+                gap: 12,
+                padding: 20,
+                background: '#fafafa',
+                borderRadius: 16,
+                }}>
                 <Input
                     placeholder="Tìm kiếm theo mã, khách, sản phẩm..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onPressEnter={handleSearch}
-                    style={{ width: 300 }}
+                    style={{ 
+                        width: 350,
+                        borderRadius: 10
+                    }}
                 />
                 <Button onClick={handleSearch}>Tìm</Button>
                 <Select
@@ -430,107 +648,426 @@ const Orders = () => {
                     <Select.Option value="cancelled">Đã hủy</Select.Option>
                 </Select>
             </div>
+            {/* Thống kê đơn hàng */}
+<div
+    style={{
+        display: "grid",
+        gridTemplateColumns: "280px 280px 280px 280px",
+        gap: 5,
+        marginBottom: 7,
+    }}
+>
+    <Card
+        bordered={false}
+        style={{
+    borderRadius: 14,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+}}
+bodyStyle={{
+    padding: "14px 18px",
+}}
+    >
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div>
+                <div style={{ color: "#6b7280" }}>Tổng đơn hàng</div>
+                <div
+                    style={{
+                        fontSize: 32,
+                        fontWeight: 500,
+                        marginTop: 8,
+                    }}
+                >
+                    {totalOrders}
+                </div>
+            </div>
+
+            <div
+                style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: "50%",
+                    background: "#e8f5e9",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <ShoppingCartOutlined
+                    style={{
+                        fontSize: 26,
+                        color: "#22aa44",
+                    }}
+                />
+            </div>
+        </div>
+    </Card>
+
+    <Card
+        bordered={false}
+        style={{
+            borderRadius: 20,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+        }}
+    >
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div>
+                <div style={{ color: "#6b7280" }}>Chờ xử lý</div>
+                <div
+                    style={{
+                        fontSize: 32,
+                        fontWeight: 700,
+                        marginTop: 8,
+                        color: "#faad14",
+                    }}
+                >
+                    {pendingOrders}
+                </div>
+            </div>
+
+            <div
+                style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: "50%",
+                    background: "#fff7e6",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <ClockCircleOutlined
+                    style={{
+                        fontSize: 26,
+                        color: "#faad14",
+                    }}
+                />
+            </div>
+        </div>
+    </Card>
+
+    <Card
+        bordered={false}
+        style={{
+            borderRadius: 20,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+        }}
+    >
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div>
+                <div style={{ color: "#6b7280" }}>Hoàn thành</div>
+                <div
+                    style={{
+                        fontSize: 32,
+                        fontWeight: 700,
+                        marginTop: 8,
+                        color: "#52c41a",
+                    }}
+                >
+                    {completedOrders}
+                </div>
+            </div>
+
+            <div
+                style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: "50%",
+                    background: "#f6ffed",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <CheckCircleOutlined
+                    style={{
+                        fontSize: 26,
+                        color: "#52c41a",
+                    }}
+                />
+            </div>
+        </div>
+    </Card>
+
+    <Card
+        bordered={false}
+        style={{
+            borderRadius: 20,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+        }}
+    >
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div>
+                <div style={{ color: "#6b7280" }}>Đã hủy</div>
+                <div
+                    style={{
+                        fontSize: 32,
+                        fontWeight: 700,
+                        marginTop: 8,
+                        color: "#ff4d4f",
+                    }}
+                >
+                    {cancelledOrders}
+                </div>
+            </div>
+
+            <div
+                style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: "50%",
+                    background: "#fff1f0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <CloseCircleOutlined
+                    style={{
+                        fontSize: 26,
+                        color: "#ff4d4f",
+                    }}
+                />
+            </div>
+        </div>
+    </Card>
+</div>
 
             <Table
                 columns={columns}
                 dataSource={displayedOrders}
                 rowKey="id"
                 loading={loading}
-                pagination={{ pageSize: 10 }}
+                pagination={{ 
+                    pageSize: 10,
+                    showSizeChanger: false 
+                }}
+                bordered={false}
             />
 
             {/* Order Detail Modal */}
+            {/* Order Detail Modal */}
             <Modal
-                title="Chi tiết đơn hàng"
-                open={!!detail}
-                onCancel={() => setDetail(null)}
+                open={!!detail}   
+                onCancel={() => setDetail(null)}    
                 footer={null}
                 width={800}
             >
                 {detail && (
-                    <div>
-                        <div style={{ marginBottom: '16px' }}>
-                            <p><strong>Mã đơn:</strong> {detail.order_code || detail.id}</p>
-                            <p><strong>Tên khách:</strong> {customers.find(c => c.id === detail.customer_id)?.name}</p>
-                            <p><strong>Số điện thoại:</strong> {customers.find(c => c.id === detail.customer_id)?.phone}</p>
-                            <p><strong>Địa chỉ giao:</strong> {detail.shipping_address}</p>
-                            <p><strong>Thời gian giao:</strong> {new Date(detail.delivery_time || detail.created_at || '').toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</p>
-                            
-                            <div style={{ marginTop: '16px', padding: '12px', background: '#f5f5f5', borderRadius: '8px' }}>
-                                <p style={{ marginBottom: '8px' }}><strong>Cập nhật trạng thái đơn hàng:</strong></p>
-                                <Space>
-                                    <Select
-                                        value={detail.status || 'pending'}
-                                        onChange={async (value) => {
-                                            if (detail.status === 'completed' || detail.status === 'cancelled') {
-                                                message.warning("Đơn hàng đã hoàn thành hoặc đã hủy, không thể cập nhật!");
-                                                return;
-                                            }
-                                            try {
-                                                await orderAPI.updateStatus(detail!.id!, value);
-                                                message.success("Cập nhật trạng thái thành công!");
-                                                setDetail(null);
-                                                fetchOrders();
-                                            } catch (error) {
-                                                message.error("Lỗi khi cập nhật trạng thái!");
-                                            }
-                                        }}
-                                        style={{ width: '150px' }}
-                                    >
-                                        <Select.Option key="pending" value="pending">
-                                            Đang chờ
-                                        </Select.Option>
-                                        <Select.Option key="completed" value="completed">
-                                            Hoàn thành
-                                        </Select.Option>
-                                        <Select.Option key="cancelled" value="cancelled">
-                                            Đã hủy
-                                        </Select.Option>
-                                    </Select>
-                                </Space>
+                    <div style={{ padding: 10 }}>
+
+                        {/* Header */}
+                        <div
+                            style={{                   
+                                display: "flex",                    
+                                justifyContent: "space-between",                   
+                                alignItems: "center",         
+                                marginBottom: 10
+                            }}
+                        >
+                            <h2 style={{ margin: 0 }}>                    
+                                Chi tiết đơn hàng
+                            </h2>
+
+                            <Space>
+                                <Select
+                                    value={detail.status}                        
+                                    style={{ width: 180 }}                        
+                                    onChange={async (value) => {
+                                        try {                                
+                                            await orderAPI.updateStatus(detail.id!, value);                               
+                                            message.success("Cập nhật thành công");
+                                            fetchOrders();
+                                            const updated =
+                                                await orderAPI.getById(detail.id!);
+                                            setDetail(updated);
+                                        } catch {
+                                            message.error("Lỗi cập nhật");
+                                        }
+                                    }}
+                                >
+                                    <Select.Option value="pending">
+                                        Đang chờ
+                                    </Select.Option>
+                                    <Select.Option value="completed">
+                                        Hoàn thành
+                                    </Select.Option>
+                                    <Select.Option value="cancelled">
+                                        Đã hủy
+                                    </Select.Option>
+                                </Select>
+                            </Space>
+                        </div>
+
+                        {/* Thông tin đơn */}
+                        <Card style={{ marginBottom: 20 }}>
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                                    gap: 20
+                                }}
+                            >
+                                <div>
+                                    <div>Mã đơn hàng</div>
+
+                                    <h2>
+                                        {detail.order_code || detail.id}
+                                    </h2>
+
+                                    <Tag color="green">
+                                        {statusLabels[detail.status || "pending"]}
+                                    </Tag>
+                                </div>
+
+                                <div>
+                                    <div>Thời gian đặt hàng</div>
+
+                                    <b>
+                                        {new Date(
+                                            detail.created_at || ""
+                                        ).toLocaleString("vi-VN")}
+                                    </b>
+                                </div>
+
+                                <div>
+                                    <div>Thanh toán</div>
+
+                                    <b>COD</b>
+                                </div>
+
+                                <div>
+                                    <div>Vận chuyển</div>
+                                    <b>Giao hàng nhanh</b>
+                                </div>
                             </div>
+                        </Card>
+
+                        {/* Khách hàng + Tổng tiền */}
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "2fr 1fr",
+                                gap: 20,
+                                marginBottom: 20
+                            }}
+                        >
+                            <Card title="Thông tin khách hàng">
+                                <p>
+                                    <b>Tên khách:</b>{" "}
+                                    {customers.find(
+                                        c => c.id === detail.customer_id
+                                    )?.name || "N/A"}
+                                </p>
+
+                                <p>
+                                    <b>SĐT:</b>{" "}
+                                    {customers.find(
+                                        c => c.id === detail.customer_id
+                                    )?.phone || "N/A"}
+                                </p>
+
+                                <p>
+                                    <b>Địa chỉ:</b>{" "}
+                                    {detail.shipping_address}
+                                </p>
+                            </Card>
+
+                            <Card title="Thông tin đơn hàng">
+                                <p>
+                                    Tạm tính:
+                                    <b style={{ float: "right" }}>
+                                        {detail.total_price?.toLocaleString("vi-VN")}₫
+                                    </b>
+                                </p>
+
+                                <p>
+                                    Phí ship:
+                                    <b style={{ float: "right" }}>
+                                        0₫
+                                    </b>
+                                </p>
+
+                                <hr />
+
+                                <p
+                                    style={{
+                                        fontSize: 18,
+                                        color: "red",
+                                        fontWeight: 700
+                                    }}
+                                >
+                                    Tổng cộng:
+                                    <span style={{ float: "right" }}>
+                                        {detail.total_price?.toLocaleString("vi-VN")}₫
+                                    </span>
+                                </p>
+                            </Card>
                         </div>
 
-                        <div style={{ marginBottom: '16px' }}>
-                            <h4>Sản phẩm trong đơn:</h4>
-                            <Table
-                                dataSource={detail.order_items || []}
-                                columns={[
-                                    {
-                                        title: 'Tên sản phẩm',
-                                        dataIndex: 'product_name',
-                                        key: 'product_name',
-                                        render: (name: string, record: any) => name || `Sản phẩm #${record.product_id}`
-                                    },
-                                    {
-                                        title: 'Số lượng',
-                                        dataIndex: 'quantity',
-                                        key: 'quantity',
-                                    },
-                                    {
-                                        title: 'Đơn giá',
-                                        dataIndex: 'price',
-                                        key: 'price',
-                                        render: (price: number) => `${price?.toLocaleString("vi-VN")}₫`,
-                                    },
-                                    {
-                                        title: 'Thành tiền',
-                                        key: 'total',
-                                        render: (record: any) => `${((record.quantity || 0) * (record.price || 0)).toLocaleString("vi-VN")}₫`,
-                                    }
-                                ]}
-                                rowKey="id"
-                                pagination={false}
-                                size="small"
-                            />
-                        </div>
+                        {/* Sản phẩm */}
+                        <Card
+                            title="Sản phẩm đã đặt"
+                            style={{ marginBottom: 20 }}
+                        >
+                        <Table
+                            pagination={false}
+                            dataSource={detail.order_items || []}
+                            rowKey="id"
+                            columns={[
+                                {
+                                    title: "Tên sản phẩm",
+                                    dataIndex: "product_name"
+                                },
+                                {
+                                    title: "Đơn giá",
+                                    dataIndex: "price",
+                                    render: (v: number) =>
+                                    v?.toLocaleString("vi-VN") + "₫"
+                                },
+                                {
+                                    title: "Số lượng",
+                                    dataIndex: "quantity"
+                                },
+                                {
+                                    title: "Thành tiền",
+                                    render: (_: any, row: any) =>
+                                        (
+                                            row.quantity *
+                                            row.price
+                                        ).toLocaleString("vi-VN") + "₫"
+                                }
+                            ]}
+                        />
+                    </Card>
 
-                        <div style={{ marginBottom: '16px' }}>
-                            <strong>Tổng tiền: {detail.total_price?.toLocaleString("vi-VN")}₫</strong>
+                    {/* Lịch sử */}
+                    <Card title="Lịch sử đơn hàng">
+                        <div style={{ padding: 10 }}>
+                            <p>
+                                ✅ Đơn hàng được tạo
+                            </p>
+
+                            <p>
+                                🕒 {new Date(
+                                    detail.created_at || ""
+                                ).toLocaleString("vi-VN")}
+                            </p>
+
+                            <p>
+                                📦 Trạng thái hiện tại:
+                                <b>
+                                    {" "}
+                                    {statusLabels[
+                                        detail.status || "pending"
+                                    ]}
+                                </b>
+                            </p>
                         </div>
-                    </div>
-                )}
-            </Modal>
+                    </Card>
+
+                </div>
+            )}
+        </Modal>
 
             {/* Add Order Modal */}
             <Modal
@@ -689,6 +1226,7 @@ const Orders = () => {
                 </Form>
             </Modal>
         </div>
+        </Card>
     );
 }
 
