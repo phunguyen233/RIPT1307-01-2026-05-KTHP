@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -13,6 +13,16 @@ import Cart from './pages/Cart';
 import Auth from './pages/Auth';
 import OrderHistory from './pages/OrderHistory';
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -22,6 +32,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <div className="App min-h-screen flex flex-col">
         <Header />
         <main className="flex-1">

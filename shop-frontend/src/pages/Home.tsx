@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Product } from "../types/Product";
 import CartProduct from "../components/cartProduct";
@@ -218,7 +219,7 @@ export default function Home() {
             </div>
           ) : (
             products.slice(0,4).map((p) => (
-              <div key={p.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
+              <Link key={p.id} to={`/products/details/${p.id}`} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center block hover:shadow-md transition-shadow cursor-pointer">
                 <div className="w-40 h-40 mx-auto mb-3 rounded-full overflow-hidden bg-gray-50 flex items-center justify-center">
                   <img src={resolveImageUrl(p.hinh_anh)} alt={p.ten_san_pham} onError={(e:any)=>e.currentTarget.src='/placeholder.png'} className="w-full h-full object-contain" />
                 </div>
@@ -227,7 +228,7 @@ export default function Home() {
                 <div className="mt-3 flex justify-center gap-2">
                   <div className="text-xs bg-gray-100 px-3 py-1 rounded-full">350ml</div>
                 </div>
-              </div>
+              </Link>
             ))
           )}
         </div>
