@@ -23,14 +23,16 @@ exports.getAllOrders = async (req, res, next) => {
                FROM orders o
                LEFT JOIN customers c ON o.customer_id = c.id
                WHERE o.shop_id = $1 AND o.customer_id = $2
-               ORDER BY o.id`;
+               ORDER BY o.created_at DESC`;
       values = [shop_id, customerId];
+    } else if (req.user.role === 'shop') {
+      return res.status(403).json({ error: 'Customer authentication required to view order history' });
     } else {
       query = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
                FROM orders o
                LEFT JOIN customers c ON o.customer_id = c.id
                WHERE o.shop_id = $1
-               ORDER BY o.id`;
+               ORDER BY o.created_at DESC`;
       values = [shop_id];
     }
 
@@ -72,6 +74,8 @@ exports.getOrderById = async (req, res, next) => {
                     LEFT JOIN customers c ON o.customer_id = c.id
                     WHERE o.id = $1 AND o.shop_id = $2 AND o.customer_id = $3`;
       orderValues = [id, shop_id, customerId];
+    } else if (req.user.role === 'shop') {
+      return res.status(403).json({ error: 'Customer authentication required to view order details' });
     } else {
       orderQuery = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
                     FROM orders o

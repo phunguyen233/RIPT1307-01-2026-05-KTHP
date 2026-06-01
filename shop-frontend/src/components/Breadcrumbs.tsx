@@ -15,9 +15,10 @@ const routeLabels: Record<string, string> = {
 
 type BreadcrumbsProps = {
   currentName?: string;
+  appendItems?: {label: string, to?: string}[];
 };
 
-const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ currentName }) => {
+const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ currentName, appendItems }) => {
   const location = useLocation();
   const segments = location.pathname.split('/').filter(Boolean);
 
@@ -38,17 +39,21 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ currentName }) => {
 
     acc.push({
       label,
-      to: isLast ? undefined : path,
+      to: (isLast && !appendItems?.length) ? undefined : path,
     });
     return acc;
   }, []);
+
+  if (appendItems?.length) {
+    items.push(...appendItems);
+  }
 
   return (
     <nav className="mb-6 text-sm text-text/60" aria-label="breadcrumb">
       <ol className="flex flex-wrap items-center gap-2">
         <li>
           <Link to="/" className="inline-flex items-center gap-1 text-text/60 hover:text-danger transition-colors">
-            <Home className="w-4 h-4" />
+            <Home className="w-4 h-4" fill="currentColor" />
             <span>Trang chủ</span>
           </Link>
         </li>

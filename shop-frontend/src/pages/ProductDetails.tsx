@@ -69,6 +69,30 @@ const ProductDetails = () => {
     setQuantity(quantity + 1);
   };
 
+  const handleAddToCart = () => {
+    if (!product) return;
+    try {
+      const raw = localStorage.getItem("cart");
+      const cart: Array<any> = raw ? JSON.parse(raw) : [];
+      const existing = cart.find((c) => c.id === product.id);
+
+      if (existing) {
+        existing.quantity = (existing.quantity || 1) + quantity;
+      } else {
+        // Also map name to ten_san_pham just in case the Cart page expects it
+        cart.push({ ...product, ten_san_pham: product.name, quantity: quantity });
+      }
+
+      localStorage.setItem("cart", JSON.stringify(cart));
+      try { window.dispatchEvent(new Event('cartChange')); } catch {}
+      
+      alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
+    } catch (e) {
+      console.error(e);
+      alert('Có lỗi xảy ra khi thêm vào giỏ hàng.');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col font-primary bg-surface selection:bg-warning/30 selection:text-primary">
       
@@ -89,7 +113,7 @@ const ProductDetails = () => {
             <div className="flex flex-col md:flex-row gap-12 lg:gap-20 mb-20">
               {/* Product Image */}
               <div className="w-full md:w-5/12 lg:w-1/3 flex-shrink-0 mx-auto md:mx-0">
-                <div className="aspect-[4/5] md:aspect-square w-full max-w-sm mx-auto overflow-hidden bg-secondary/30 rounded-xl relative">
+                <div className="aspect-[4/5] md:aspect-square w-full max-w-xs mx-auto overflow-hidden bg-secondary/30 rounded-xl relative">
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
@@ -112,11 +136,11 @@ const ProductDetails = () => {
               </div>
 
               {/* Product Info */}
-              <div className="flex-grow flex flex-col justify-start pt-4">
-                <h1 className="text-2xl lg:text-3xl font-bold text-text uppercase tracking-wider mb-4">
+              <div className="flex-grow flex flex-col items-start text-left pt-4">
+                <h1 className="text-xl lg:text-2xl font-semibold text-text uppercase tracking-wider mb-4 w-full text-left">
                   {product.name}
                 </h1>
-                <p className="text-2xl font-bold text-danger mb-10">
+                <p className="text-2xl font-bold text-green-600 mb-10 w-full text-left">
                   {formatPrice(product.price)}
                 </p>
 
@@ -146,28 +170,31 @@ const ProductDetails = () => {
                     </div>
                   </div>
                   
-                  <button className="flex items-center gap-2 bg-danger hover:bg-danger/90 text-white px-8 py-3 rounded-full font-bold transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                    <ShoppingCart className="w-5 h-5" />
+                  <button 
+                    onClick={handleAddToCart}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 text-sm rounded-full font-bold transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
                     THÊM VÀO GIỎ
                   </button>
                 </div>
 
                 {/* Details Table */}
-                <div className="text-sm">
+                <div className="text-sm w-full">
                   <div className="flex py-3 border-b border-secondary/50">
-                    <span className="w-32 font-bold text-text/80">Tên sản phẩm:</span>
+                    <span className="w-40 shrink-0 font-bold text-text/80">Tên sản phẩm:</span>
                     <span className="text-text/70">{product.name}</span>
                   </div>
                   <div className="flex py-3 border-b border-secondary/50">
-                    <span className="w-32 font-bold text-text/80">Quy cách:</span>
+                    <span className="w-40 shrink-0 font-bold text-text/80">Quy cách:</span>
                     <span className="text-text/70">Chưa có thông tin</span>
                   </div>
                   <div className="flex py-3 border-b border-secondary/50">
-                    <span className="w-32 font-bold text-text/80">Thành phần:</span>
+                    <span className="w-40 shrink-0 font-bold text-text/80">Thành phần:</span>
                     <span className="text-text/70">Chưa có thông tin</span>
                   </div>
                   <div className="flex py-3">
-                    <span className="w-32 font-bold text-text/80">Hạn sử dụng:</span>
+                    <span className="w-40 shrink-0 font-bold text-text/80">Hạn sử dụng:</span>
                     <span className="text-text/70">Chưa có thông tin</span>
                   </div>
                 </div>

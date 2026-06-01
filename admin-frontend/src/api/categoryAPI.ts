@@ -3,6 +3,8 @@ import axiosClient from "./axiosClient";
 export interface Category {
   id?: number;
   name: string;
+  description?: string;
+  is_active?: boolean;
 }
 
 export const categoryAPI = {

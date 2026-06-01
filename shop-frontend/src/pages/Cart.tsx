@@ -146,12 +146,102 @@ export default function Cart() {
   return (
     <div className="p-4 md:p-8 bg-white min-h-screen">
       <div className="max-w-5xl mx-auto">
-        <Breadcrumbs />
+        <Breadcrumbs appendItems={showCheckout ? [{ label: 'Thanh toán' }] : undefined} />
         
         <div className="mt-6">
           {cart.length === 0 ? (
             <div className="text-center py-20 text-gray-500">
               Giỏ hàng của bạn đang trống.
+            </div>
+          ) : showCheckout ? (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 mt-8">
+              {/* Left Column: Billing Details */}
+              <div className="md:col-span-7 text-left">
+                <h2 className="text-lg font-bold uppercase mb-6 tracking-wider text-left">Chi tiết hoá đơn</h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm mb-2 text-gray-700">Họ và tên <span className="text-red-500">*</span></label>
+                    <input 
+                      placeholder="Nhập họ và tên"
+                      className={`w-full border p-3 text-sm focus:outline-none focus:border-black ${checkoutFieldErrors.name ? 'border-red-500' : 'border-gray-200'}`} 
+                      value={checkoutName} 
+                      onChange={(e) => setCheckoutName(e.target.value)} 
+                    />
+                    {checkoutFieldErrors.name && <p className="text-red-600 text-xs mt-1">{checkoutFieldErrors.name}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-2 text-gray-700">Số điện thoại <span className="text-red-500">*</span></label>
+                    <input 
+                      placeholder="Nhập số điện thoại"
+                      className={`w-full border p-3 text-sm focus:outline-none focus:border-black ${checkoutFieldErrors.phone ? 'border-red-500' : 'border-gray-200'}`} 
+                      value={checkoutPhone} 
+                      onChange={(e) => setCheckoutPhone(e.target.value)} 
+                    />
+                    {checkoutFieldErrors.phone && <p className="text-red-600 text-xs mt-1">{checkoutFieldErrors.phone}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-2 text-gray-700">Địa chỉ <span className="text-red-500">*</span></label>
+                    <input 
+                      placeholder="Nhập địa chỉ"
+                      className={`w-full border p-3 text-sm focus:outline-none focus:border-black ${checkoutFieldErrors.address ? 'border-red-500' : 'border-gray-200'}`} 
+                      value={checkoutAddress} 
+                      onChange={(e) => setCheckoutAddress(e.target.value)} 
+                    />
+                    {checkoutFieldErrors.address && <p className="text-red-600 text-xs mt-1">{checkoutFieldErrors.address}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-2 text-gray-700">Thời gian nhận hàng</label>
+                    <input 
+                      type="datetime-local" 
+                      className="w-full border p-3 text-sm focus:outline-none focus:border-black border-gray-200" 
+                      value={checkoutDeliveryTime} 
+                      onChange={(e) => setCheckoutDeliveryTime(e.target.value)} 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Order Summary */}
+              <div className="md:col-span-5">
+                <div className="bg-gray-100 p-6 md:p-8 rounded-2xl text-left">
+                  <h2 className="text-lg font-bold uppercase mb-6 tracking-wider text-left">Đơn hàng của bạn</h2>
+                  
+                  <div className="flex justify-between border-b border-gray-200 pb-3 font-semibold text-sm">
+                    <span>Sản phẩm</span>
+                    <span>Thành tiền</span>
+                  </div>
+
+                  <div className="py-4 space-y-4 border-b border-gray-200 text-sm">
+                    {cart.map((c, index) => (
+                      <div key={c.id} className="flex justify-between">
+                        <span className="text-gray-600">{index + 1}. {c.ten_san_pham} {c.quantity > 1 ? `(x${c.quantity})` : ''}</span>
+                        <span className="font-semibold text-black">{((c.quantity || 1) * Number(c.gia_ban || c.price || 0)).toLocaleString()} ₫</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between py-4 border-b border-gray-200 items-center">
+                    <span className="font-bold text-[14px]">Tổng tiền</span>
+                    <span className="font-bold text-green-600 text-lg">{Number(total).toLocaleString()} ₫</span>
+                  </div>
+
+                  <div className="flex justify-center mt-6">
+                    <button 
+                      onClick={handleCheckout} 
+                      className="w-48 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 text-sm uppercase transition-colors rounded-xl"
+                    >
+                      Đặt hàng
+                    </button>
+                  </div>
+                  <button 
+                    onClick={() => setShowCheckout(false)} 
+                    className="w-full text-center text-sm text-gray-500 hover:text-green-600 mt-4 underline"
+                  >
+                    Quay lại giỏ hàng
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             <div>
@@ -262,39 +352,6 @@ export default function Cart() {
           )}
         </div>
       </div>
-      {/* Checkout modal */}
-      {showCheckout && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-xl font-semibold mb-4">Thông tin nhận hàng</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm mb-1">Tên người nhận</label>
-                <input className={`w-full border rounded px-3 py-2 ${checkoutFieldErrors.name ? 'border-red-500' : ''}`} value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} />
-                {checkoutFieldErrors.name && <p className="text-red-600 text-xs mt-1">{checkoutFieldErrors.name}</p>}
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Số điện thoại</label>
-                <input className={`w-full border rounded px-3 py-2 ${checkoutFieldErrors.phone ? 'border-red-500' : ''}`} value={checkoutPhone} onChange={(e) => setCheckoutPhone(e.target.value)} />
-                {checkoutFieldErrors.phone && <p className="text-red-600 text-xs mt-1">{checkoutFieldErrors.phone}</p>}
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Địa chỉ nhận</label>
-                <input className={`w-full border rounded px-3 py-2 ${checkoutFieldErrors.address ? 'border-red-500' : ''}`} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} />
-                {checkoutFieldErrors.address && <p className="text-red-600 text-xs mt-1">{checkoutFieldErrors.address}</p>}
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Thời gian nhận hàng</label>
-                <input type="datetime-local" className="w-full border rounded px-3 py-2" value={checkoutDeliveryTime} onChange={(e) => setCheckoutDeliveryTime(e.target.value)} />
-              </div>
-              <div className="flex justify-end gap-3 pt-3">
-                <button onClick={() => setShowCheckout(false)} className="px-4 py-2 bg-gray-300 rounded">Hủy</button>
-                <button onClick={handleCheckout} className="px-4 py-2 bg-blue-600 text-white rounded">Xác nhận đặt hàng</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Payment modal shown after order creation */}
       {showPaymentModal && maDonHang && (
