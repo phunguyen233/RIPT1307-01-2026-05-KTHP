@@ -26,7 +26,17 @@ exports.getAllOrders = async (req, res, next) => {
                ORDER BY o.created_at DESC`;
       values = [shop_id, customerId];
     } else if (req.user.role === 'shop') {
-      return res.status(403).json({ error: 'Customer authentication required to view order history' });
+      // Allow shop (API key) access only when a specific customer_id is provided
+      const customerIdFromQuery = req.query.customer_id;
+      if (!customerIdFromQuery) {
+        return res.status(403).json({ error: 'customer_id query parameter required for API key access' });
+      }
+      query = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
+               FROM orders o
+               LEFT JOIN customers c ON o.customer_id = c.id
+               WHERE o.shop_id = $1 AND o.customer_id = $2
+               ORDER BY o.created_at DESC`;
+      values = [shop_id, Number(customerIdFromQuery)];
     } else {
       query = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
                FROM orders o
@@ -75,7 +85,16 @@ exports.getOrderById = async (req, res, next) => {
                     WHERE o.id = $1 AND o.shop_id = $2 AND o.customer_id = $3`;
       orderValues = [id, shop_id, customerId];
     } else if (req.user.role === 'shop') {
-      return res.status(403).json({ error: 'Customer authentication required to view order details' });
+      // Allow API key access when customer_id query param is provided
+      const customerIdFromQuery = req.query.customer_id;
+      if (!customerIdFromQuery) {
+        return res.status(403).json({ error: 'customer_id query parameter required for API key access' });
+      }
+      orderQuery = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
+                    FROM orders o
+                    LEFT JOIN customers c ON o.customer_id = c.id
+                    WHERE o.id = $1 AND o.shop_id = $2 AND o.customer_id = $3`;
+      orderValues = [id, shop_id, Number(customerIdFromQuery)];
     } else {
       orderQuery = `SELECT o.*, c.name AS customer_name, c.phone AS customer_phone
                     FROM orders o

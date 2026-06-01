@@ -10,8 +10,13 @@ export const ordersAPI = {
     return res.data;
   },
 
-  getById: async (id: number) => {
-    const res = await shopApiClient.get(`/orders/${id}`);
+  getById: async (id: number, params?: { customer_id?: number }) => {
+    const res = await shopApiClient.get(`/orders/${id}`, { params });
+    return res.data;
+  },
+
+  getAllWithParams: async (params?: { customer_id?: number }) => {
+    const res = await shopApiClient.get('/orders', { params });
     return res.data;
   },
 

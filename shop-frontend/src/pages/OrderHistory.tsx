@@ -68,7 +68,8 @@ export default function OrderHistory() {
 
   const fetchOrders = async () => {
     const token = localStorage.getItem('token');
-    if (!token) {
+    const storedCustomerId = localStorage.getItem('customer_id');
+    if (!token && !storedCustomerId) {
       setIsAuth(false);
       setOrders([]);
       return;
@@ -76,7 +77,13 @@ export default function OrderHistory() {
     try {
       setLoading(true);
       setErrorMsg(null);
-      const res = await ordersAPI.getAll();
+      let res;
+      if (token) {
+        res = await ordersAPI.getAll();
+      } else {
+        // use API key + customer_id to fetch customer's orders for this shop
+        res = await ordersAPI.getAllWithParams({ customer_id: Number(storedCustomerId) });
+      }
       setOrders((res || []).map(normalizeOrder));
     } catch (err) {
       console.error('OrderHistory error', err);
@@ -100,14 +107,20 @@ export default function OrderHistory() {
 
   const handleViewDetail = async (orderId: number | string) => {
     const token = localStorage.getItem('token');
-    if (!token) {
+    const storedCustomerId = localStorage.getItem('customer_id');
+    if (!token && !storedCustomerId) {
       setIsAuth(false);
       return;
     }
     try {
       setLoading(true);
       setErrorMsg(null);
-      const res = await ordersAPI.getById(Number(orderId));
+      let res;
+      if (token) {
+        res = await ordersAPI.getById(Number(orderId));
+      } else {
+        res = await ordersAPI.getById(Number(orderId), { customer_id: Number(storedCustomerId) });
+      }
       setSelectedOrder(normalizeOrder(res));
     } catch (err) {
       console.error('Order detail error', err);
