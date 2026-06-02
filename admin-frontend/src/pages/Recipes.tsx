@@ -26,11 +26,13 @@ const Recipes: React.FC = () => {
   const [loading, setLoading] = useState(false);
   
   const [searchText, setSearchText] = useState("");
+  const [editingRecipeId, setEditingRecipeId] = useState<number | null>(null);
 
   const [products, setProducts] = useState<any[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [recipesList, setRecipesList] = useState<any[]>([]);
+  const [recipeIngredients, setRecipeIngredients] = useState<any[]>([]);
 
   const fetchAllData = async () => {
     try {
@@ -39,13 +41,26 @@ const Recipes: React.FC = () => {
         productAPI.getAll().catch(() => []),
         ingredientAPI.getAll().catch(() => []),
         unitAPI.getAll().catch(() => []),
-        recipeAPI.getAll().catch(() => [])
+        recipeAPI.getAll().catch(() => []),
       ]);
 
       setProducts(productsData || []);
       setIngredients(ingredientsData || []);
       setUnits(unitsData || []);
       setRecipesList(recipesData || []);
+      
+      // Fetch all recipe ingredients
+      try {
+        const allIngredientsRes = await Promise.all(
+          (recipesData || []).map(recipe => 
+            recipeAPI.getIngredientsByRecipe(recipe.id).catch(() => [])
+          )
+        );
+        const flattened = allIngredientsRes.flat();
+        setRecipeIngredients(flattened || []);
+      } catch (e) {
+        setRecipeIngredients([]);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
       message.error("Lỗi khi tải dữ liệu từ máy chủ!");
@@ -68,10 +83,9 @@ const Recipes: React.FC = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          // Khi nào Backend báo làm xong API Xóa, ông chỉ cần xóa 2 dấu gạch chéo ở dòng dưới là xong
-          // await recipeAPI.delete(id); 
-          message.success('Đã gửi yêu cầu xóa! Đang chờ Backend xử lý...');
-          fetchAllData(); // Tải lại danh sách từ DB
+          await recipeAPI.delete(id);
+          message.success('Đã xóa công thức thành công!');
+          fetchAllData();
         } catch (error) {
           message.error('Lỗi khi xóa công thức!');
         }
@@ -80,7 +94,27 @@ const Recipes: React.FC = () => {
   };
 
   const handleEdit = (record: any) => {
-    message.info('Chức năng chỉnh sửa đang được cập nhật...');
+    setEditingRecipeId(record.id);
+    form.setFieldsValue({
+      product_id: record.product_id,
+    });
+    // Load existing recipe ingredients
+    const existingIngredients = recipeIngredients.filter(ri => ri.recipe_id === record.id);
+    if (existingIngredients.length > 0) {
+      form.setFieldsValue({
+        recipe_items: existingIngredients.map(ri => ({
+          ingredient_id: ri.ingredient_id,
+          quantity: ri.quantity,
+          unit_id: ri.unit_id,
+        }))
+      });
+    } else {
+      form.setFieldsValue({
+        recipe_items: [{}],
+      });
+    }
+    setTotalCost(0);
+    setIsModalVisible(true);
   };
 
   const tableData = recipesList.map(recipe => {
@@ -141,14 +175,52 @@ const Recipes: React.FC = () => {
   const handleFinish = async (values: any) => {
     try {
       setLoading(true);
-      // await recipeAPI.create(values);
-      message.success('Tạo công thức thành công!');
+      
+      // Filter out empty recipe items
+      const validItems = (values.recipe_items || []).filter((item: any) => item && item.ingredient_id && item.quantity && item.unit_id);
+      
+      if (validItems.length === 0) {
+        message.error('Vui lòng thêm ít nhất một nguyên liệu!');
+        setLoading(false);
+        return;
+      }
+
+      let recipeId = editingRecipeId;
+      
+      if (editingRecipeId) {
+        // Update existing recipe
+        await recipeAPI.update(editingRecipeId, { product_id: values.product_id });
+        
+        // Delete old ingredients
+        const oldIngredients = recipeIngredients.filter(ri => ri.recipe_id === editingRecipeId);
+        for (const ing of oldIngredients) {
+          await recipeAPI.deleteIngredient(ing.id);
+        }
+      } else {
+        // Create new recipe
+        const newRecipe = await recipeAPI.create({ product_id: values.product_id });
+        recipeId = newRecipe.id;
+      }
+
+      // Add new ingredients
+      for (const item of validItems) {
+        await recipeAPI.addIngredient({
+          recipe_id: recipeId!,
+          ingredient_id: item.ingredient_id,
+          quantity: item.quantity,
+          unit_id: item.unit_id,
+        });
+      }
+
+      message.success(editingRecipeId ? 'Cập nhật công thức thành công!' : 'Tạo công thức thành công!');
       setIsModalVisible(false);
       form.resetFields();
       setTotalCost(0);
+      setEditingRecipeId(null);
       fetchAllData();
-    } catch (error) {
-      message.error('Lỗi khi lưu công thức!');
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error || 'Lỗi khi lưu công thức!';
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -169,7 +241,11 @@ const Recipes: React.FC = () => {
             icon={<PlusOutlined />} 
             style={{ backgroundColor: THEME.primaryGreen }}
             onClick={() => {
+              setEditingRecipeId(null);
               form.resetFields();
+              form.setFieldsValue({
+                recipe_items: [{}],
+              });
               setTotalCost(0);
               setIsModalVisible(true);
             }}
@@ -207,14 +283,24 @@ const Recipes: React.FC = () => {
       </Card>
 
       <Modal 
-        title={<span style={{ fontSize: '18px', fontWeight: 600 }}>Tạo công thức mới</span>}
+        title={<span style={{ fontSize: '18px', fontWeight: 600 }}>{editingRecipeId ? 'Chỉnh sửa công thức' : 'Tạo công thức mới'}</span>}
         open={isModalVisible} 
-        onCancel={() => setIsModalVisible(false)}
+        onCancel={() => {
+          setIsModalVisible(false);
+          setEditingRecipeId(null);
+          form.resetFields();
+          setTotalCost(0);
+        }}
         width={850}
         footer={[
-          <Button key="back" onClick={() => setIsModalVisible(false)}>Hủy</Button>,
+          <Button key="back" onClick={() => {
+            setIsModalVisible(false);
+            setEditingRecipeId(null);
+            form.resetFields();
+            setTotalCost(0);
+          }}>Hủy</Button>,
           <Button key="submit" type="primary" style={{ backgroundColor: THEME.primaryGreen }} onClick={() => form.submit()} loading={loading}>
-            Lưu công thức
+            {editingRecipeId ? 'Cập nhật công thức' : 'Lưu công thức'}
           </Button>,
         ]}
       >
