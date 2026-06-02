@@ -8,6 +8,16 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { sidebarCollapsed, setToken } = useAuth();
 
+  const currentUserRole = (() => {
+    try {
+      const raw = localStorage.getItem('user');
+      const user = raw ? JSON.parse(raw) : null;
+      return user?.role || '';
+    } catch {
+      return '';
+    }
+  })();
+
   const handleLogout = () => {
     try { setToken(null); localStorage.removeItem("user"); } catch { }
     navigate('/auth');
@@ -55,10 +65,17 @@ export default function Sidebar() {
       label: <Link to="/inventory">Nhập kho</Link>,
     },
     {
-      key: "/api-key",
-      icon: <KeyOutlined />,
-      label: <Link to="/api-key">API Key</Link>,
+      key: "/staffs",
+      icon: <UserOutlined />,
+      label: <Link to="/staffs">Nhân viên</Link>,
     },
+    ...(currentUserRole !== 'staff' ? [
+      {
+        key: "/api-key",
+        icon: <KeyOutlined />,
+        label: <Link to="/api-key">API Key</Link>,
+      },
+    ] : []),
     {
       type: 'divider',
     },

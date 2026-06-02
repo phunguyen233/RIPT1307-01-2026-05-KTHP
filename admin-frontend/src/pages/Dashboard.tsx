@@ -33,6 +33,16 @@ const THEME = {
 
 const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
+  const currentUserRole = (() => {
+    try {
+      const raw = localStorage.getItem('user');
+      const user = raw ? JSON.parse(raw) : null;
+      return user?.role || '';
+    } catch {
+      return '';
+    }
+  })();
+  const isStaff = currentUserRole === 'staff';
   
   // State variables for dashboard metrics
   const [totalProducts, setTotalProducts] = useState<number>(0); 
@@ -276,7 +286,7 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Space size={12}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: THEME.lightGreenBg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><DollarCircleOutlined style={{ fontSize: '18px', color: THEME.primaryGreen }} /></div>
-                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>Doanh thu thật</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{totalRevenue.toLocaleString()} đ</div></div>
+                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>{isStaff ? 'Đơn hàng đã xử lý' : 'Doanh thu thật'}</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? totalOrders : `${totalRevenue.toLocaleString()} đ`}</div></div>
               </Space>
             </div>
           </Card>
@@ -286,7 +296,7 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Space size={12}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: THEME.lightGreenBg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><TagOutlined style={{ fontSize: '18px', color: THEME.primaryGreen }} /></div>
-                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>Tổng giá trị thực đơn</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{totalProductValue.toLocaleString()} đ</div></div>
+                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>{isStaff ? 'Nguyên liệu cần nhập' : 'Tổng giá trị thực đơn'}</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? lowStockCount : `${totalProductValue.toLocaleString()} đ`}</div></div>
               </Space>
             </div>
           </Card>
@@ -297,43 +307,45 @@ const Dashboard: React.FC = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         
         {/* Revenue SVG Chart */}
-        <Col xs={24} xl={16}>
-          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<Space size={6}><span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>Doanh thu 7 ngày qua</span><InfoCircleOutlined style={{ color: '#cbd5e1', fontSize: '13px' }} /></Space>}>
-            <div style={{ width: '100%', height: '240px' }}>
-              <svg width="100%" height="100%" viewBox="0 0 800 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                <defs><linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#16a34a" stopOpacity="0.15" /><stop offset="100%" stopColor="#16a34a" stopOpacity="0.00" /></linearGradient></defs>
-                <line x1="45" y1="20" x2="780" y2="20" stroke="#f1f5f9" strokeDasharray="3" />
-                <line x1="45" y1="70" x2="780" y2="70" stroke="#f1f5f9" strokeDasharray="3" />
-                <line x1="45" y1="120" x2="780" y2="120" stroke="#f1f5f9" strokeDasharray="3" />
-                <line x1="45" y1="170" x2="780" y2="170" stroke="#f1f5f9" strokeDasharray="3" />
-                <line x1="45" y1="220" x2="780" y2="220" stroke="#cbd5e1" strokeWidth="1" />
-                <text x="35" y="24" fill="#94a3b8" fontSize="11" textAnchor="end">{(chartMax / 1000).toLocaleString()}k</text>
-                <text x="35" y="74" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.75) / 1000).toLocaleString()}k</text>
-                <text x="35" y="124" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.5) / 1000).toLocaleString()}k</text>
-                <text x="35" y="174" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.25) / 1000).toLocaleString()}k</text>
-                <text x="35" y="224" fill="#94a3b8" fontSize="11" textAnchor="end">0</text>
-                
-                {/* Render the smooth gradient area */}
-                {chartData.length > 0 && <path d={`${generateSmoothCurve(chartData)} L 770 220 L 50 220 Z`} fill="url(#chartGradient)" />}
-                
-                {/* Render the smooth stroke line */}
-                {chartData.length > 0 && <path d={generateSmoothCurve(chartData)} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-                
-                {chartData.map((d, i) => <circle key={`circle-${i}`} cx={d.x} cy={d.y} r="5" fill="#16a34a" stroke="#fff" strokeWidth="2" />)}
-                {chartData.map((d, i) => <text key={`text-${i}`} x={d.x} y="238" fill="#94a3b8" fontSize="11" textAnchor="middle">{d.day}</text>)}
-              </svg>
-            </div>
-          </Card>
-        </Col>
+        {!isStaff && (
+          <Col xs={24} xl={16}>
+            <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<Space size={6}><span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>Doanh thu 7 ngày qua</span><InfoCircleOutlined style={{ color: '#cbd5e1', fontSize: '13px' }} /></Space>}>
+              <div style={{ width: '100%', height: '240px' }}>
+                <svg width="100%" height="100%" viewBox="0 0 800 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                  <defs><linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#16a34a" stopOpacity="0.15" /><stop offset="100%" stopColor="#16a34a" stopOpacity="0.00" /></linearGradient></defs>
+                  <line x1="45" y1="20" x2="780" y2="20" stroke="#f1f5f9" strokeDasharray="3" />
+                  <line x1="45" y1="70" x2="780" y2="70" stroke="#f1f5f9" strokeDasharray="3" />
+                  <line x1="45" y1="120" x2="780" y2="120" stroke="#f1f5f9" strokeDasharray="3" />
+                  <line x1="45" y1="170" x2="780" y2="170" stroke="#f1f5f9" strokeDasharray="3" />
+                  <line x1="45" y1="220" x2="780" y2="220" stroke="#cbd5e1" strokeWidth="1" />
+                  <text x="35" y="24" fill="#94a3b8" fontSize="11" textAnchor="end">{(chartMax / 1000).toLocaleString()}k</text>
+                  <text x="35" y="74" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.75) / 1000).toLocaleString()}k</text>
+                  <text x="35" y="124" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.5) / 1000).toLocaleString()}k</text>
+                  <text x="35" y="174" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.25) / 1000).toLocaleString()}k</text>
+                  <text x="35" y="224" fill="#94a3b8" fontSize="11" textAnchor="end">0</text>
+                  
+                  {/* Render the smooth gradient area */}
+                  {chartData.length > 0 && <path d={`${generateSmoothCurve(chartData)} L 770 220 L 50 220 Z`} fill="url(#chartGradient)" />}
+                  
+                  {/* Render the smooth stroke line */}
+                  {chartData.length > 0 && <path d={generateSmoothCurve(chartData)} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                  
+                  {chartData.map((d, i) => <circle key={`circle-${i}`} cx={d.x} cy={d.y} r="5" fill="#16a34a" stroke="#fff" strokeWidth="2" />)}
+                  {chartData.map((d, i) => <text key={`text-${i}`} x={d.x} y="238" fill="#94a3b8" fontSize="11" textAnchor="middle">{d.day}</text>)}
+                </svg>
+              </div>
+            </Card>
+          </Col>
+        )}
 
         {/* Inventory Overview */}
         <Col xs={24} xl={8}>
-          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle, height: '100%' }} title={<span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>Tổng quan dữ liệu kho</span>}>
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle, height: '100%' }} title={<span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>{isStaff ? 'Tổng quan hoạt động' : 'Tổng quan dữ liệu kho'}</span>}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', gap: '22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Space size={12}>
                   <Avatar size="large" icon={<DollarCircleOutlined />} style={{ backgroundColor: THEME.lightGreenBg, color: THEME.primaryGreen }} />
-                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>Tổng doanh thu thực</div><div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{totalRevenue.toLocaleString()} đ</div></div>
+                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>{isStaff ? 'Tổng đơn hàng' : 'Tổng doanh thu thực'}</div><div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? totalOrders : `${totalRevenue.toLocaleString()} đ`}</div></div>
                 </Space>
                 <Progress type="circle" percent={totalOrders > 0 ? 100 : 0} width={42} strokeColor={THEME.primaryGreen} strokeWidth={9} />
               </div>

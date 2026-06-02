@@ -218,8 +218,8 @@ exports.login = async (req, res, next) => {
 
       user = result.rows[0];
 
-      if (user.role !== 'admin' && user.role !== 'superadmin') {
-        return res.status(403).json({ error: 'Only admin or superadmin accounts can login here' });
+      if (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'staff') {
+        return res.status(403).json({ error: 'Only admin, staff, or superadmin accounts can login here' });
       }
 
       resolvedShopId = user.shop_id;
@@ -346,6 +346,22 @@ exports.regenerateApiKey = async (req, res, next) => {
   }
 };
 
+exports.getStaffUsers = async (req, res, next) => {
+  try {
+    const shopId = req.user?.shop_id;
+    if (!shopId) {
+      return res.status(400).json({ error: 'Shop ID is required' });
+    }
+    const result = await db.query(
+      'SELECT id, name, email, role, shop_id, created_at FROM users WHERE role = $1 AND shop_id = $2 ORDER BY created_at DESC',
+      ['staff', shopId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getAllUsers = async (req, res, next) => {
   try {
     const result = await db.query('SELECT id, name, email, role, shop_id, created_at FROM users ORDER BY id');
@@ -371,12 +387,21 @@ exports.getUserById = async (req, res, next) => {
 exports.createUser = async (req, res, next) => {
   try {
     const { name, email, password, role, shop_id } = req.body;
+    const effectiveShopId = shop_id || req.user?.shop_id;
+
+    if (!effectiveShopId) {
+      return res.status(400).json({ error: 'Shop ID is required to create a user' });
+    }
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email, and password are required' });
+    }
+
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password || '', salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     const result = await db.query(
       'INSERT INTO users (name, email, password, role, shop_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, shop_id, created_at',
-      [name, email, hashedPassword, role || 'customer', shop_id || null]
+      [name, email, hashedPassword, role || 'customer', effectiveShopId]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
