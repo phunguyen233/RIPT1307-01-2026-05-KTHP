@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import shopApiClient from '../api/shopApiClient';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { ShoppingCart, Minus, Plus } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 interface Product {
   id: number;
@@ -86,10 +87,18 @@ const ProductDetails = () => {
       localStorage.setItem("cart", JSON.stringify(cart));
       try { window.dispatchEvent(new Event('cartChange')); } catch {}
       
-      alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
+      toast.success(
+        <div>
+          <div className="font-bold text-gray-800 text-base mb-1">Thành công</div>
+          <div className="text-gray-600 text-sm">Sản phẩm được thêm thành công vào giỏ hàng</div>
+        </div>,
+        {
+          className: '!border-l-4 !border-green-500 !rounded-none !rounded-r-md',
+        }
+      );
     } catch (e) {
       console.error(e);
-      alert('Có lỗi xảy ra khi thêm vào giỏ hàng.');
+      toast.error('Có lỗi xảy ra khi thêm vào giỏ hàng.');
     }
   };
 

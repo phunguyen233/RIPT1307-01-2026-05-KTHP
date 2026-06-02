@@ -5,6 +5,7 @@ import PaymentModal from "../components/paymentModal";
 import { API_KEY } from "../api/shopApiClient";
 import customersAPI from "../api/customersAPI";
 import ordersAPI from "../api/ordersAPI";
+import { toast } from "react-toastify";
 
 export default function Cart() {
   const [cart, setCart] = useState<Array<any>>([]);
@@ -53,15 +54,30 @@ export default function Cart() {
     if (!checkoutAddress || !checkoutAddress.trim()) fieldErrs.address = 'Vui lòng nhập địa chỉ nhận hàng';
     if (Object.keys(fieldErrs).length) {
       setCheckoutFieldErrors(fieldErrs);
-      const missing = Object.values(fieldErrs).join('\n');
-      alert('Vui lòng hoàn thành thông tin nhận hàng:\n' + missing);
+      toast.error(
+        <div>
+          <div className="font-bold text-gray-800 text-base mb-1">Thông báo</div>
+          <div className="text-gray-600 text-sm">Vui lòng điền đầy đủ thông tin nhận hàng</div>
+        </div>,
+        {
+          className: '!border-l-4 !border-red-600 !rounded-none !rounded-r-md',
+        }
+      );
       return;
     }
     setCheckoutFieldErrors({});
 
     // Shop-frontend requires API key to be configured
     if (!API_KEY) {
-      alert('Chưa cấu hình API Key. Vui lòng kiểm tra file .env');
+      toast.error(
+        <div>
+          <div className="font-bold text-gray-800 text-base mb-1">Lỗi hệ thống</div>
+          <div className="text-gray-600 text-sm">Chưa cấu hình API Key. Vui lòng kiểm tra file .env</div>
+        </div>,
+        {
+          className: '!border-l-4 !border-red-600 !rounded-none !rounded-r-md',
+        }
+      );
       return;
     }
 
@@ -130,7 +146,15 @@ export default function Cart() {
       setShowPaymentModal(true);
     } catch (err: any) {
       console.error(err);
-      alert(err?.response?.data?.error || 'Lỗi khi đặt hàng');
+      toast.error(
+        <div>
+          <div className="font-bold text-gray-800 text-base mb-1">Lỗi khi đặt hàng</div>
+          <div className="text-gray-600 text-sm">{err?.response?.data?.error || 'Không thể tạo đơn hàng, vui lòng thử lại sau.'}</div>
+        </div>,
+        {
+          className: '!border-l-4 !border-red-600 !rounded-none !rounded-r-md',
+        }
+      );
     }
   };
 
@@ -323,7 +347,15 @@ export default function Cart() {
                   onClick={() => {
                     const next = [...cart];
                     save(next);
-                    alert("Giỏ hàng đã được cập nhật!");
+                    toast.success(
+                      <div>
+                        <div className="font-bold text-gray-800 text-base mb-1">Thành công</div>
+                        <div className="text-gray-600 text-sm">Giỏ hàng đã được cập nhật!</div>
+                      </div>,
+                      {
+                        className: '!border-l-4 !border-green-500 !rounded-none !rounded-r-md',
+                      }
+                    );
                   }}
                   className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-[12px] font-bold uppercase px-5 py-2.5 rounded-md transition-colors flex items-center gap-2"
                 >

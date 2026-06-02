@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -33,6 +35,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={true} />
       <div className="App min-h-screen flex flex-col">
         <Header />
         <main className="flex-1">

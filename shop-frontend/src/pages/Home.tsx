@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 import { Product } from "../types/Product";
 import CartProduct from "../components/cartProduct";
 import productsAPI from "../api/productsAPI";
@@ -73,7 +74,7 @@ export default function Home() {
   const handleAddToCart = (product: Product) => {
     try {
       if (!product.hien_thi) {
-        alert('Sản phẩm hiện không có sẵn để đặt (đang ẩn).');
+        toast.error('Sản phẩm hiện không có sẵn để đặt (đang ẩn).');
         return;
       }
       const raw = localStorage.getItem("cart");
@@ -88,7 +89,15 @@ export default function Home() {
       localStorage.setItem("cart", JSON.stringify(cart));
       // notify other parts of the app (same-tab) that cart changed
       try { window.dispatchEvent(new Event('cartChange')); } catch {}
-      alert(`${product.ten_san_pham} đã được thêm vào giỏ hàng`);
+      toast.success(
+        <div>
+          <div className="font-bold text-gray-800 text-base mb-1">Thành công</div>
+          <div className="text-gray-600 text-sm">Sản phẩm được thêm thành công vào giỏ hàng</div>
+        </div>,
+        {
+          className: '!border-l-4 !border-green-500 !rounded-none !rounded-r-md',
+        }
+      );
     } catch (err) {
       console.error("Lỗi khi thêm vào giỏ hàng:", err);
     }
