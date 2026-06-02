@@ -38,7 +38,7 @@ app.get('/', (req, res) => {
 
 // Public routes (accessible with x-api-key header)
 app.use('/api/shops', shopsRoutes); // get shop by api key is public
-app.use('/api/payment', paymentRoutes); // VNPay payment URL generation
+app.use('/api/payment', paymentRoutes); // SePay payment endpoints
 
 // Routes accessible with either admin token or x-api-key (for shop-frontend)
 app.use('/api/products', verifyTokenOrApiKey, productsRoutes);
