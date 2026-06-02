@@ -64,12 +64,12 @@ export default function Sidebar() {
       icon: <InboxOutlined />,
       label: <Link to="/inventory">Nhập kho</Link>,
     },
-    {
-      key: "/staffs",
-      icon: <UserOutlined />,
-      label: <Link to="/staffs">Nhân viên</Link>,
-    },
     ...(currentUserRole !== 'staff' ? [
+      {
+        key: "/staffs",
+        icon: <UserOutlined />,
+        label: <Link to="/staffs">Nhân viên</Link>,
+      },
       {
         key: "/api-key",
         icon: <KeyOutlined />,

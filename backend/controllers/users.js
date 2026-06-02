@@ -396,6 +396,11 @@ exports.createUser = async (req, res, next) => {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
+    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({ error: 'Email đã tồn tại' });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
