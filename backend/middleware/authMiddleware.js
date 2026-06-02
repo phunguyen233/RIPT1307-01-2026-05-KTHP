@@ -38,13 +38,16 @@ exports.verifyToken = (req, res, next) => {
  */
 exports.verifyAdminToken = (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization;
+    console.log('verifyAdminToken authHeader:', authHeader);
+    const token = authHeader?.split(' ')[1];
 
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('verifyAdminToken decoded:', decoded);
     
     if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
       return res.status(403).json({ error: 'Only admin or superadmin can access this' });

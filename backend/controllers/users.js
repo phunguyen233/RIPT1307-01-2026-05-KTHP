@@ -348,6 +348,7 @@ exports.regenerateApiKey = async (req, res, next) => {
 
 exports.getStaffUsers = async (req, res, next) => {
   try {
+    console.log('getStaffUsers USER:', req.user);
     const shopId = req.user?.shop_id;
     if (!shopId) {
       return res.status(400).json({ error: 'Shop ID is required' });
