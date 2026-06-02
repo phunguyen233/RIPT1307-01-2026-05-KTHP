@@ -65,7 +65,7 @@ export default function Header() {
           type="primary" 
           icon={<ShopOutlined />} 
           onClick={handleViewShop}
-          style={{ display: 'flex', alignItems: 'center', background: '#5D4432' }} // Màu nâu hợp với tông Cafe
+          style={{ display: 'flex', alignItems: 'center', background: '#16a34a' }}
         >
           Xem cửa hàng
         </Button>

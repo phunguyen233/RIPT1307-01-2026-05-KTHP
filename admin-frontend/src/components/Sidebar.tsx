@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, type MenuProps } from "antd";
-import { HomeOutlined, ShoppingOutlined, AppstoreOutlined, UserOutlined, ShoppingCartOutlined, InboxOutlined, BookOutlined, StarOutlined, LogoutOutlined, KeyOutlined } from "@ant-design/icons";
+import { HomeOutlined, ShoppingOutlined, AppstoreOutlined, UserOutlined, ShoppingCartOutlined, InboxOutlined, BookOutlined, StarOutlined, LogoutOutlined, KeyOutlined, ShopOutlined } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Sidebar() {
@@ -65,12 +65,28 @@ export default function Sidebar() {
   ];
 
   return (
-    <Menu
-      mode="inline"
-      selectedKeys={[location.pathname]}
-      style={{ height: '100%', borderRight: 0 }}
-      inlineCollapsed={sidebarCollapsed}
-      items={menuItems}
-    />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
+        <div style={{
+          minWidth: 40, width: 40, height: 40, borderRadius: '50%', backgroundColor: '#dcfce7',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#16a34a', fontSize: '20px'
+        }}>
+          <ShopOutlined />
+        </div>
+        {!sidebarCollapsed && (
+          <div style={{ display: 'flex', flexDirection: 'column', whiteSpace: 'nowrap' }}>
+            <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#16a34a', lineHeight: 1.2 }}>Admin</span>
+            <span style={{ fontSize: '12px', color: '#6b7280' }}>Quản trị cửa hàng</span>
+          </div>
+        )}
+      </div>
+      <Menu
+        mode="inline"
+        selectedKeys={[location.pathname]}
+        style={{ flex: 1, borderRight: 0 }}
+        inlineCollapsed={sidebarCollapsed}
+        items={menuItems}
+      />
+    </div>
   );
 }

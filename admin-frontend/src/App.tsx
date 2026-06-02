@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Layout } from "antd";
+import { Layout, ConfigProvider } from "antd";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import RequireAuth from "./components/RequireAuth";
@@ -79,7 +79,15 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <InnerApp />
+        <ConfigProvider
+          theme={{
+            token: {
+              colorPrimary: '#16a34a',
+            },
+          }}
+        >
+          <InnerApp />
+        </ConfigProvider>
       </AuthProvider>
     </ThemeProvider>
   );
