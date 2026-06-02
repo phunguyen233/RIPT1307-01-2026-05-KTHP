@@ -11,7 +11,10 @@ const axiosClient = axios.create({
 // Attach token tự động
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (token && config.headers) {
+  if (!config.headers) {
+    config.headers = {} as any;
+  }
+  if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

@@ -7,7 +7,7 @@ export const userAPI = {
     const res = await axiosClient.get(`${endpoint}/staff`);
     return res.data;
   },
-  createStaff: async (payload: { name: string; email: string; password: string; role?: string; shop_id: number }) => {
+  createStaff: async (payload: { name: string; email: string; password: string; role?: string; shop_id?: number }) => {
     const res = await axiosClient.post(`${endpoint}`, payload);
     return res.data;
   },

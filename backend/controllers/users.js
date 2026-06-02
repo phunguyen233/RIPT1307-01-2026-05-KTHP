@@ -386,8 +386,12 @@ exports.getUserById = async (req, res, next) => {
 
 exports.createUser = async (req, res, next) => {
   try {
+    console.log('createUser BODY:', req.body);
+    console.log('createUser USER:', req.user);
+
     const { name, email, password, role, shop_id } = req.body;
-    const effectiveShopId = shop_id || req.user?.shop_id;
+    const tokenShopId = req.user?.shop_id;
+    const effectiveShopId = tokenShopId || shop_id;
 
     if (!effectiveShopId) {
       return res.status(400).json({ error: 'Shop ID is required to create a user' });

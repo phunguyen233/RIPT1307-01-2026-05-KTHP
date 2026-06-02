@@ -15,13 +15,17 @@ const Staffs: React.FC = () => {
   const currentUser = useMemo(() => {
     try {
       const raw = localStorage.getItem('user');
-      return raw ? JSON.parse(raw) : null;
-    } catch {
+      const parsed = raw ? JSON.parse(raw) : null;
+      console.log('Staffs currentUser', parsed);
+      return parsed;
+    } catch (error) {
+      console.error('Staffs currentUser parse error', error);
       return null;
     }
   }, []);
 
   const shopId = currentUser?.shop_id;
+  console.log('Staffs shopId', shopId);
 
   const fetchStaffs = async () => {
     try {
@@ -41,11 +45,6 @@ const Staffs: React.FC = () => {
   }, []);
 
   const handleCreateStaff = async (values: any) => {
-    if (!shopId) {
-      message.error('Không xác định được cửa hàng hiện tại');
-      return;
-    }
-
     try {
       setSubmitting(true);
       await userAPI.createStaff({
@@ -53,7 +52,6 @@ const Staffs: React.FC = () => {
         email: values.email,
         password: values.password,
         role: 'staff',
-        shop_id: shopId,
       });
       message.success('Đã tạo tài khoản nhân viên');
       setModalVisible(false);
