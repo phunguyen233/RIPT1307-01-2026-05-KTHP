@@ -11,9 +11,11 @@ router.post('/login', usersController.login);
 // Protected routes (cần xác thực token)
 router.get('/current-shop', verifyToken, usersController.getCurrentShopApiKey);
 router.put('/current-shop/regenerate-key', verifyToken, usersController.regenerateApiKey);
+router.get('/staff', verifyAdminToken, usersController.getStaffs);
+router.post('/', verifyAdminToken, usersController.createStaff);
 router.get('/', verifyAdminToken, usersController.getAllUsers);
 router.get('/:id', verifyAdminToken, usersController.getUserById);
-router.put('/:id', verifyAdminToken, usersController.updateUser);
-router.delete('/:id', verifyAdminToken, usersController.deleteUser);
+router.put('/:id', verifyAdminToken, usersController.updateStaff);
+router.delete('/:id', verifyAdminToken, usersController.deleteStaff);
 
 module.exports = router;

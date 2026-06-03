@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Ưu tiên dùng biến môi trường, nếu không có thì fallback sang URL deploy
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "https://bepmam-backend.onrender.com/api";
+  process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
@@ -11,10 +11,7 @@ const axiosClient = axios.create({
 // Attach token tự động
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (!config.headers) {
-    config.headers = {} as any;
-  }
-  if (token) {
+  if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

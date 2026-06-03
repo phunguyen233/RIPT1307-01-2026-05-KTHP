@@ -346,15 +346,14 @@ exports.regenerateApiKey = async (req, res, next) => {
   }
 };
 
-exports.getStaffUsers = async (req, res, next) => {
+exports.getStaffs = async (req, res, next) => {
   try {
-    console.log('getStaffUsers USER:', req.user);
     const shopId = req.user?.shop_id;
     if (!shopId) {
       return res.status(400).json({ error: 'Shop ID is required' });
     }
     const result = await db.query(
-      'SELECT id, name, email, role, shop_id, created_at FROM users WHERE role = $1 AND shop_id = $2 ORDER BY created_at DESC',
+      'SELECT id, name, email, password, role, shop_id, created_at FROM users WHERE role = $1 AND shop_id = $2 ORDER BY created_at DESC',
       ['staff', shopId]
     );
     res.json(result.rows);
@@ -385,20 +384,24 @@ exports.getUserById = async (req, res, next) => {
   }
 };
 
-exports.createUser = async (req, res, next) => {
+exports.createStaff = async (req, res, next) => {
   try {
-    console.log('createUser BODY:', req.body);
-    console.log('createUser USER:', req.user);
-
-    const { name, email, password, role, shop_id } = req.body;
+    const { name, email, password } = req.body;
     const tokenShopId = req.user?.shop_id;
-    const effectiveShopId = tokenShopId || shop_id;
 
-    if (!effectiveShopId) {
-      return res.status(400).json({ error: 'Shop ID is required to create a user' });
+    if (!tokenShopId) {
+      return res.status(400).json({ error: 'Shop ID is required to create a staff account' });
     }
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
     const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -411,7 +414,7 @@ exports.createUser = async (req, res, next) => {
 
     const result = await db.query(
       'INSERT INTO users (name, email, password, role, shop_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, shop_id, created_at',
-      [name, email, hashedPassword, role || 'customer', effectiveShopId]
+      [name, email, hashedPassword, 'staff', tokenShopId]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -419,30 +422,73 @@ exports.createUser = async (req, res, next) => {
   }
 };
 
-exports.updateUser = async (req, res, next) => {
+exports.updateStaff = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, email, role, shop_id } = req.body;
-    const result = await db.query(
-      'UPDATE users SET name = $1, email = $2, role = $3, shop_id = $4 WHERE id = $5 RETURNING id, name, email, role, shop_id, created_at',
-      [name, email, role, shop_id || null, id]
-    );
-    if (result.rows.length === 0) {
+    const { name, email, role } = req.body;
+    const tokenShopId = req.user?.shop_id;
+
+    // Lấy thông tin user cần update
+    const userResult = await db.query('SELECT * FROM users WHERE id = $1', [id]);
+    if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    const targetUser = userResult.rows[0];
+
+    // Chỉ cho phép update nhân viên trong shop của admin
+    if (targetUser.shop_id !== tokenShopId) {
+      return res.status(403).json({ error: 'Cannot update user from different shop' });
+    }
+
+    // Không cho phép thay đổi role của admin hoặc superadmin
+    if (targetUser.role === 'admin' || targetUser.role === 'superadmin') {
+      return res.status(403).json({ error: 'Cannot modify admin or superadmin accounts' });
+    }
+
+    // Nếu role được gửi, chỉ allow role = 'staff' hoặc 'customer'
+    let finalRole = targetUser.role;
+    if (role && (role === 'staff' || role === 'customer')) {
+      finalRole = role;
+    } else if (role) {
+      return res.status(400).json({ error: 'Invalid role. Only staff and customer are allowed' });
+    }
+
+    const result = await db.query(
+      'UPDATE users SET name = $1, email = $2, role = $3 WHERE id = $4 RETURNING id, name, email, role, shop_id, created_at',
+      [name || targetUser.name, email || targetUser.email, finalRole, id]
+    );
+
     res.json(result.rows[0]);
   } catch (error) {
     next(error);
   }
 };
 
-exports.deleteUser = async (req, res, next) => {
+exports.deleteStaff = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await db.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
-    if (result.rows.length === 0) {
+    const tokenShopId = req.user?.shop_id;
+
+    // Lấy thông tin user cần xóa
+    const userResult = await db.query('SELECT * FROM users WHERE id = $1', [id]);
+    if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    const targetUser = userResult.rows[0];
+
+    // Chỉ cho phép xóa nhân viên trong shop của admin
+    if (targetUser.shop_id !== tokenShopId) {
+      return res.status(403).json({ error: 'Cannot delete user from different shop' });
+    }
+
+    // Không cho phép xóa admin hoặc superadmin
+    if (targetUser.role === 'admin' || targetUser.role === 'superadmin') {
+      return res.status(403).json({ error: 'Cannot delete admin or superadmin accounts' });
+    }
+
+    const result = await db.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     next(error);

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Table, Modal, Form, Input, Space, message, Popconfirm, Typography } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserAddOutlined } from '@ant-design/icons';
-import { userAPI } from '../api/userAPI';
+import { staffAPI } from '../api/staffAPI';
 
 const { Title } = Typography;
 
@@ -11,6 +11,7 @@ const Staffs: React.FC = () => {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [form] = Form.useForm();
+  const [showPasswords, setShowPasswords] = useState<Set<number>>(new Set());
 
   const currentUser = useMemo(() => {
     try {
@@ -30,7 +31,7 @@ const Staffs: React.FC = () => {
   const fetchStaffs = async () => {
     try {
       setLoading(true);
-      const data = await userAPI.getStaffs();
+      const data = await staffAPI.getStaffs();
       setStaffs(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
@@ -47,7 +48,7 @@ const Staffs: React.FC = () => {
   const handleCreateStaff = async (values: any) => {
     try {
       setSubmitting(true);
-      await userAPI.createStaff({
+      await staffAPI.createStaff({
         name: values.name,
         email: values.email,
         password: values.password,
@@ -68,7 +69,7 @@ const Staffs: React.FC = () => {
   const handleDeleteStaff = async (id: number) => {
     try {
       setLoading(true);
-      await userAPI.deleteUser(id);
+      await staffAPI.deleteStaff(id);
       message.success('Đã xóa tài khoản nhân viên');
       fetchStaffs();
     } catch (error: any) {
@@ -77,6 +78,24 @@ const Staffs: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = (id: number) => {
+    const newSet = new Set(showPasswords);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setShowPasswords(newSet);
+  };
+
+  const handleEditStaff = (staff: any) => {
+    // Removed edit functionality
+  };
+
+  const handleUpdateStaff = async (values: any) => {
+    // Removed edit functionality
   };
 
   const columns = [
@@ -91,32 +110,35 @@ const Staffs: React.FC = () => {
       key: 'email',
     },
     {
-      title: 'Vai trò',
-      dataIndex: 'role',
-      key: 'role',
-      render: (value: string) => value === 'staff' ? 'Nhân viên' : value,
-    },
-    {
-      title: 'Ngày tạo',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (value: string) => value ? new Date(value).toLocaleString('vi-VN') : '-',
+      title: 'Mật khẩu',
+      dataIndex: 'password',
+      key: 'password',
+      render: (value: string, record: any) => (
+        <Space size="small">
+          <span>{showPasswords.has(record.id) ? value : '••••••••'}</span>
+          <Button
+            type="text"
+            size="small"
+            onClick={() => togglePasswordVisibility(record.id)}
+          >
+            {showPasswords.has(record.id) ? 'Ẩn' : 'Xem'}
+          </Button>
+        </Space>
+      ),
     },
     {
       title: 'Hành động',
       key: 'action',
       align: 'center' as const,
       render: (_: any, record: any) => (
-        <Space>
-          <Popconfirm
-            title="Bạn có chắc muốn xóa tài khoản này?"
-            onConfirm={() => handleDeleteStaff(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
-          >
-            <Button danger type="text" icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
+        <Popconfirm
+          title="Bạn có chắc muốn xóa tài khoản này?"
+          onConfirm={() => handleDeleteStaff(record.id)}
+          okText="Xóa"
+          cancelText="Hủy"
+        >
+          <Button danger type="text" icon={<DeleteOutlined />} />
+        </Popconfirm>
       ),
     },
   ];
