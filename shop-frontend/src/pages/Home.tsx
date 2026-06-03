@@ -207,39 +207,72 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Centered pill title (decorated with horizontal lines) */}
-        <div className="w-full flex items-center justify-center mb-8">
-          <div className="flex items-center w-full max-w-5xl px-4">
-            <div className="flex-1 border-t border-green-600/70" />
-            <div className="mx-4 -mt-1">
-              <div className="bg-green-600 text-white px-10 py-2 rounded-full font-semibold text-sm tracking-wider shadow-sm">
+        {/* Centered title */}
+        <div className="w-full flex flex-col items-center justify-center mb-10 mt-16">
+          <div className="flex items-center w-full max-w-4xl px-4 mb-3">
+            <div className="flex-1 border-t-2 border-green-700/20" />
+            <div className="mx-4 flex items-center gap-3">
+              <div className="bg-[#f0fdf4] text-green-700 border border-green-200 px-8 py-2 rounded-full font-bold text-[17px] tracking-wide shadow-sm">
                 NHẤT ĐỊNH PHẢI THỬ
               </div>
             </div>
-            <div className="flex-1 border-t border-green-600/70" />
+            <div className="flex-1 border-t-2 border-green-700/20" />
           </div>
+          <p className="text-gray-500 font-medium text-[15px]">Những món đồ uống được yêu thích nhất</p>
         </div>
 
         {/* Product showcase (use fetched products, styled like provided image) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 lg:gap-6 px-4">
           {products.length === 0 ? (
             <div className="col-span-full text-center py-8">
               <p className="text-gray-500">Đang tải sản phẩm...</p>
             </div>
           ) : (
-            products.slice(0,4).map((p) => (
-              <Link key={p.id} to={`/products/details/${p.id}`} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center block hover:shadow-md transition-shadow cursor-pointer">
-                <div className="w-40 h-40 mx-auto mb-3 rounded-full overflow-hidden bg-gray-50 flex items-center justify-center">
-                  <img src={resolveImageUrl(p.hinh_anh)} alt={p.ten_san_pham} onError={(e:any)=>e.currentTarget.src='/placeholder.png'} className="w-full h-full object-contain" />
+            products.slice(0,5).map((p) => (
+              <Link key={p.id} to={`/products/details/${p.id}`} className="bg-white rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col overflow-hidden hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all duration-300 transform hover:-translate-y-1">
+                {/* Image Section */}
+                <div className="relative aspect-[4/3] w-full bg-gray-50 overflow-hidden">
+                  <div className="absolute top-3 left-3 z-10 bg-[#16a34a] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm">
+                    Mới
+                  </div>
+                  <img 
+                    src={resolveImageUrl(p.hinh_anh)} 
+                    alt={p.ten_san_pham} 
+                    onError={(e:any)=>{
+                      e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 text-xs text-center">Không có ảnh</div>';
+                      }
+                    }} 
+                    className="w-full h-full object-cover" 
+                  />
                 </div>
-                <div className="text-sm text-muted-foreground">NƯỚC ÉP</div>
-                <div className="text-lg font-bold text-gray-800">{p.ten_san_pham}</div>
-                <div className="mt-3 flex justify-center gap-2">
-                  <div className="text-xs bg-gray-100 px-3 py-1 rounded-full">350ml</div>
+
+                {/* Content Section */}
+                <div className="p-5 flex flex-col flex-1 text-left">
+                  <h2 className="text-[18px] font-bold text-gray-800 mb-2 truncate">{p.ten_san_pham}</h2>
+                  <p className="text-[13px] text-gray-500 line-clamp-2 leading-relaxed mb-5 flex-1">
+                    {p.mo_ta || "Sự kết hợp độc đáo giữa hương vị tinh tế và công thức đặc biệt."}
+                  </p>
+                  
+                  <div className="flex items-center justify-between mt-auto">
+                    <span className="text-[16px] lg:text-[17px] font-bold text-[#16a34a]">{Number(p.gia_ban).toLocaleString('vi-VN')}đ</span>
+                    <button className="px-3 lg:px-4 py-1.5 border border-[#16a34a] text-[#16a34a] bg-[#f0fdf4] hover:bg-[#16a34a] hover:text-white rounded-full text-[12px] lg:text-[13px] font-medium transition-colors">
+                      Xem chi tiết
+                    </button>
+                  </div>
                 </div>
               </Link>
             ))
           )}
+        </div>
+
+        <div className="mt-12 flex justify-center">
+          <Link to="/products" className="flex items-center gap-2 bg-[#f0fdf4] border border-[#d1fae5] text-[#16a34a] hover:bg-[#16a34a] hover:text-white px-6 py-2.5 rounded-full font-medium transition-colors group">
+            Xem tất cả món
+            <span className="group-hover:translate-x-1 transition-transform">→</span>
+          </Link>
         </div>
       </div>
 
