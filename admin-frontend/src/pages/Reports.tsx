@@ -781,7 +781,7 @@ function Reports() {
               style={{ cursor: 'pointer', minHeight: 150 }}
               bodyStyle={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
             >
-              <div style={{ fontSize: 30, color: '#1890ff' }}>{item.icon}</div>
+              <div style={{ fontSize: 30, color: '#16a34a' }}>{item.icon}</div>
               <div>
                 <Title level={5} style={{ margin: 0 }}>{item.label}</Title>
               </div>
