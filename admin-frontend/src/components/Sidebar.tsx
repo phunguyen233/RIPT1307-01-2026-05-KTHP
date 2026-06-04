@@ -1,12 +1,22 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, type MenuProps } from "antd";
-import { HomeOutlined, ShoppingOutlined, AppstoreOutlined, UserOutlined, ShoppingCartOutlined, InboxOutlined, BookOutlined, StarOutlined, LogoutOutlined, KeyOutlined, ShopOutlined } from "@ant-design/icons";
+import { HomeOutlined, ShoppingOutlined, AppstoreOutlined, UserOutlined, ShoppingCartOutlined, InboxOutlined, BookOutlined, StarOutlined, LogoutOutlined, KeyOutlined, ShopOutlined, FileExcelOutlined } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { sidebarCollapsed, setToken } = useAuth();
+
+  const currentUserRole = (() => {
+    try {
+      const raw = localStorage.getItem('user');
+      const user = raw ? JSON.parse(raw) : null;
+      return user?.role || '';
+    } catch {
+      return '';
+    }
+  })();
 
   const handleLogout = () => {
     try { setToken(null); localStorage.removeItem("user"); } catch { }
@@ -54,11 +64,23 @@ export default function Sidebar() {
       icon: <InboxOutlined />,
       label: <Link to="/inventory">Nhập kho</Link>,
     },
-    {
-      key: "/api-key",
-      icon: <KeyOutlined />,
-      label: <Link to="/api-key">API Key</Link>,
-    },
+    ...(currentUserRole !== 'staff' ? [
+      {
+        key: "/staffs",
+        icon: <UserOutlined />,
+        label: <Link to="/staffs">Nhân viên</Link>,
+      },
+      {
+        key: "/reports",
+        icon: <FileExcelOutlined />,
+        label: <Link to="/reports">Báo cáo</Link>,
+      },
+      {
+        key: "/api-key",
+        icon: <KeyOutlined />,
+        label: <Link to="/api-key">API Key</Link>,
+      },
+    ] : []),
     {
       type: 'divider',
     },

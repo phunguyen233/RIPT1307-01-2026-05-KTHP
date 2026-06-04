@@ -25,8 +25,8 @@ const Auth: React.FC = () => {
     try {
       const res = await authAPI.login({ email: values.email, password: values.password });
 
-      if (res.user.role !== "admin") {
-        message.error("Chỉ admin được phép đăng nhập tại đây");
+      if (res.user.role !== "admin" && res.user.role !== "staff" && res.user.role !== "superadmin") {
+        message.error("Chỉ admin hoặc nhân viên được phép đăng nhập tại đây");
         return;
       }
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { Search, ShoppingCart, Heart, Star } from "lucide-react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { Product } from "../types/Product";
 import { resolveImageUrl } from "../api/imageHelper";
@@ -23,6 +24,7 @@ export default function Products({ onLogout }: ProductsProps) {
   const [pressedButton, setPressedButton] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string>("newest");
 
   useEffect(() => {
     if (!API_KEY) {
@@ -41,6 +43,7 @@ export default function Products({ onLogout }: ProductsProps) {
           mo_ta: row.description,
           hien_thi: row.is_active,
           category_id: row.category_id,
+          created_at: row.created_at,
         }));
         setProducts(mapped);
       })
@@ -54,6 +57,15 @@ export default function Products({ onLogout }: ProductsProps) {
       .then(data => setCategories(data))
       .catch(err => console.error("Lỗi khi tải danh mục:", err));
   }, []);
+
+  const isNewProduct = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const createdDate = new Date(dateStr);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
+  };
 
   const handleAddToCart = (product: Product) => {
     try {
@@ -92,6 +104,10 @@ export default function Products({ onLogout }: ProductsProps) {
     const matchesSearch = !search || (p.ten_san_pham || "").toLowerCase().includes(search);
     const matchesCategory = selectedCategoryId === null || p.category_id === selectedCategoryId;
     return matchesSearch && matchesCategory;
+  }).sort((a, b) => {
+    if (sortBy === "price_asc") return Number(a.gia_ban) - Number(b.gia_ban);
+    if (sortBy === "price_desc") return Number(b.gia_ban) - Number(a.gia_ban);
+    return b.id - a.id; // newest (default)
   });
 
   if (error) {
@@ -122,54 +138,103 @@ export default function Products({ onLogout }: ProductsProps) {
         <div className="mt-8 flex flex-col md:flex-row gap-10">
           {/* Sidebar */}
           <div className="w-full md:w-1/4 lg:w-1/5 shrink-0">
-            <h3 className="text-[15px] font-bold uppercase border-b-2 border-green-600 inline-block pb-2 mb-4 text-gray-800">
+            <h3 className="text-[16px] font-bold uppercase text-[#1a2b3c] mb-6 relative inline-block">
               LOẠI SẢN PHẨM
+              <span className="absolute -bottom-2 left-0 w-1/2 h-0.5 bg-green-500"></span>
             </h3>
-            <ul className="flex flex-col gap-4 text-[14px] text-gray-600 mt-2">
-              <li>
-                <button
-                  className={`text-left w-full hover:text-green-600 transition-colors pb-4 border-b border-gray-100 ${selectedCategoryId === null ? 'font-bold text-green-600' : ''}`}
-                  onClick={() => setSelectedCategoryId(null)}
-                >
-                  Tất cả
-                </button>
-              </li>
-              {categories.map((c: any) => (
-                <li key={c.id}>
+            
+            <div className="bg-white border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] rounded-2xl p-2.5">
+              <ul className="flex flex-col text-[14px]">
+                <li>
                   <button
-                    className={`text-left w-full hover:text-green-600 transition-colors pb-4 border-b border-gray-100 ${selectedCategoryId === c.id ? 'font-bold text-green-600' : ''}`}
-                    onClick={() => setSelectedCategoryId(c.id)}
+                    className={`flex items-center justify-between w-full px-4 py-3.5 rounded-xl transition-colors font-medium
+                      ${selectedCategoryId === null 
+                        ? 'bg-[#f0fdf4] text-[#16a34a]' 
+                        : 'text-gray-600 hover:text-[#16a34a]'}`}
+                    onClick={() => setSelectedCategoryId(null)}
                   >
-                    {c.name}
+                    <span>Tất cả</span>
+                    <span className={`${selectedCategoryId === null ? 'text-[#16a34a]' : 'text-gray-500'}`}>
+                      {products.length}
+                    </span>
                   </button>
                 </li>
-              ))}
-            </ul>
+                
+                {categories.map((c: any, index: number) => {
+                  const count = products.filter(p => p.category_id === c.id).length;
+                  const isActive = selectedCategoryId === c.id;
+                  const prevIsActive = index === 0 ? selectedCategoryId === null : selectedCategoryId === categories[index-1]?.id;
+                  
+                  return (
+                    <React.Fragment key={c.id}>
+                      {!(isActive || prevIsActive) && (
+                        <div className="mx-4 border-t border-gray-100"></div>
+                      )}
+                      <li>
+                        <button
+                          className={`flex items-center justify-between w-full px-4 py-3.5 rounded-xl transition-colors font-medium
+                            ${isActive 
+                              ? 'bg-[#f0fdf4] text-[#16a34a]' 
+                              : 'text-gray-600 hover:text-[#16a34a]'}`}
+                          onClick={() => setSelectedCategoryId(c.id)}
+                        >
+                          <span>{c.name}</span>
+                          <span className={`${isActive ? 'text-[#16a34a]' : 'text-gray-500'}`}>
+                            {count}
+                          </span>
+                        </button>
+                      </li>
+                    </React.Fragment>
+                  );
+                })}
+              </ul>
+            </div>
           </div>
 
           {/* Main Content */}
           <div className="flex-1">
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
               <h3 className="text-[20px] font-bold uppercase text-gray-800">
                 DANH SÁCH SẢN PHẨM
               </h3>
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Tìm sản phẩm..."
-                className="p-3 border border-gray-200 shadow-sm text-sm w-full sm:w-64 rounded-full focus:outline-none focus:border-green-400"
-                aria-label="Tìm sản phẩm"
-              />
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Search Bar */}
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-400 group-focus-within:text-green-500 transition-colors" />
+                  </div>
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Tìm kiếm..."
+                    className="pl-10 pr-4 py-2.5 border border-gray-200 bg-gray-50/50 text-sm w-full sm:w-56 rounded-full focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400 transition-all duration-300"
+                    aria-label="Tìm sản phẩm"
+                  />
+                </div>
+
+                {/* Sort Dropdown */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-4 py-2.5 border border-gray-200 bg-gray-50/50 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400 text-gray-600 font-medium cursor-pointer transition-all duration-300 appearance-none"
+                  style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right .7rem top 50%', backgroundSize: '.65rem auto', paddingRight: '2.5rem' }}
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="price_asc">Giá: Thấp đến Cao</option>
+                  <option value="price_desc">Giá: Cao đến Thấp</option>
+                </select>
+              </div>
             </div>
 
-            <div className="grid gap-6 justify-items-center grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+            <div className="grid gap-4 justify-items-center grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4">
               {filteredProducts.length === 0 ? (
                 <div className="col-span-full text-center py-20 text-gray-500">
                   Không tìm thấy sản phẩm phù hợp.
                 </div>
               ) : filteredProducts.map((p) => (
-                <div key={p.id} className="p-2 w-full max-w-xs mx-auto">
+                <div key={p.id} className="p-2 w-full max-w-[240px] mx-auto">
                   <div
                     onMouseEnter={() => setHoveredId(p.id)}
                     onMouseLeave={() => setHoveredId(null)}
@@ -186,15 +251,34 @@ export default function Products({ onLogout }: ProductsProps) {
                   >
                     {/* Image (square 1:1) */}
                     <div
-                      className="w-full mb-3 overflow-hidden rounded-xl cursor-pointer"
+                      className="w-full mb-3 overflow-hidden rounded-xl cursor-pointer group"
                       style={{ position: "relative", width: "100%", paddingTop: "100%", }}
                       onClick={() => navigate(`/products/details/${p.id}${window.location.search}`)}
                     >
+                      {/* Badge "Mới" */}
+                      {isNewProduct(p.created_at) && (
+                        <div className="absolute top-3 left-3 z-10 bg-[#16a34a] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm">
+                          Mới
+                        </div>
+                      )}
+                      
+                      {/* Heart Icon */}
+                      <button 
+                        className="absolute top-2 right-2 z-10 bg-white p-1.5 rounded-full shadow-sm text-gray-500 hover:text-red-500 hover:bg-gray-50 transition-colors focus:outline-none"
+                        onClick={(e) => { e.stopPropagation(); toast.success('Đã thêm vào danh sách yêu thích'); }}
+                      >
+                        <Heart className="w-4 h-4" />
+                      </button>
+
                       <img
                         src={resolveImageUrl(p.hinh_anh)}
                         alt={p.ten_san_pham}
                         onError={(e: any) => {
-                          e.currentTarget.src = "/placeholder.png";
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 text-xs text-center border border-gray-200" style="position:absolute;top:0;left:0;right:0;bottom:0;border-radius:12px;">Không có ảnh</div>';
+                          }
                         }}
                         style={{
                           position: "absolute",
@@ -205,50 +289,56 @@ export default function Products({ onLogout }: ProductsProps) {
                           objectFit: "cover",
                           borderRadius: '12px'
                         }}
+                        className="transition-transform duration-300 group-hover:scale-105"
                       />
                     </div>
 
                     {/* Info under the image */}
-                    <div className="text-center px-2">
+                    <div className="text-left px-1 flex-1 flex flex-col">
                       <h2 
-                        className="font-semibold text-[16px] mb-1 truncate text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
+                        className="font-bold text-[15px] mb-1.5 truncate text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
                         onClick={() => navigate(`/products/details/${p.id}${window.location.search}`)}
                       >
                         {p.ten_san_pham}
                       </h2>
-                      <p className="text-gray-900 font-bold mb-3">{Number(p.gia_ban).toLocaleString()} ₫</p>
-                    </div>
+                      
+                      {/* Rating Stars (Mocked to match design) */}
+                      <div className="flex items-center gap-1 mb-2.5">
+                        <div className="flex text-yellow-400">
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <Star className="w-3.5 h-3.5 fill-current text-yellow-400/50" />
+                        </div>
+                      </div>
 
-                    {/* Buttons row */}
-                    <div className="px-2 mt-auto flex gap-2 w-full justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                         style={{ opacity: hoveredId === p.id ? 1 : 0 }}>
-                      {(!p.hien_thi) ? (
-                        <button
-                          type="button"
-                          disabled
-                          className="px-4 py-2 text-[13px] bg-gray-300 text-white rounded-xl cursor-not-allowed select-none"
-                        >
-                          Không khả dụng
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleAddToCart(p)}
-                          onMouseDown={() => setPressedButton(`${p.id}-add`)}
-                          onMouseUp={() => setPressedButton(null)}
-                          onMouseLeave={() => setPressedButton(null)}
-                          onTouchStart={() => setPressedButton(`${p.id}-add`)}
-                          onTouchEnd={() => setPressedButton(null)}
-                          className={`
-                            px-4 py-2 text-[13px] font-medium text-white rounded-xl transition-all duration-150
-                            ${pressedButton === `${p.id}-add`
-                              ? "bg-green-700 scale-95"
-                              : "bg-green-600 hover:bg-green-700 active:bg-green-800"}
-                          `}
-                        >
-                          Thêm vào giỏ
-                        </button>
-                      )}
+                      <p className="text-gray-900 font-bold text-[16px] mb-4">{Number(p.gia_ban).toLocaleString()} ₫</p>
+
+                      {/* Buttons row */}
+                      <div className="mt-auto">
+                        {(!p.hien_thi) ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="w-full py-2.5 text-[13px] bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed select-none font-medium"
+                          >
+                            Hết hàng
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleAddToCart(p)}
+                            className="w-full flex items-center justify-center gap-2 bg-[#127e36] hover:bg-green-700 text-white py-2.5 rounded-lg transition-colors duration-200 shadow-sm"
+                            title="Thêm vào giỏ"
+                          >
+                            <ShoppingCart className="w-4 h-4" />
+                            <span className="text-[14px] font-medium">
+                              Thêm vào giỏ
+                            </span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

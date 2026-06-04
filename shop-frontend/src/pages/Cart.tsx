@@ -287,7 +287,7 @@ export default function Cart() {
                     <div className="col-span-1 md:col-span-5 flex items-center gap-4">
                       <div className="w-16 h-16 shrink-0">
                         <img 
-                          src={require('../api/imageHelper').resolveImageUrl(c.hinh_anh)} 
+                          src={require('../api/imageHelper').resolveImageUrl(c.hinh_anh || c.image_url)} 
                           alt={c.ten_san_pham} 
                           className="w-full h-full object-cover rounded-md"
                         />

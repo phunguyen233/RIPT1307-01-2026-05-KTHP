@@ -17,8 +17,8 @@ const isAuthenticated = () => {
         .replace(/\p{Diacritic}/gu, "")
         .trim();
     const roleNorm = normalize(rawRole);
-    const isAdmin = roleNorm.includes("admin") || roleNorm.includes("quan") || user?.ten_dang_nhap === "admin";
-    return !!isAdmin;
+    const isAdminOrStaff = roleNorm.includes("admin") || roleNorm.includes("staff") || roleNorm.includes("quan") || user?.ten_dang_nhap === "admin";
+    return !!isAdminOrStaff;
   } catch {
     return false;
   }

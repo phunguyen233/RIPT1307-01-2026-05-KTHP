@@ -33,7 +33,7 @@ const THEME = {
 };
 
 const Dashboard: React.FC = () => {
-  const [isFetching, setIsFetching] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true);
   
   // 1. STATE FOR FILTERS (Time & Search)
   const [timeFilter, setTimeFilter] = useState<string>('all');
@@ -310,7 +310,7 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Space size={12}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: THEME.lightGreenBg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><DollarCircleOutlined style={{ fontSize: '18px', color: THEME.primaryGreen }} /></div>
-                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>Doanh thu {timeFilter !== 'all' || searchText ? '(Đã lọc)' : ''}</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{totalRevenue.toLocaleString()} đ</div></div>
+                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>Doanh thu thật</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{totalRevenue.toLocaleString()} đ</div></div>
               </Space>
             </div>
           </Card>
@@ -320,7 +320,7 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Space size={12}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: THEME.lightGreenBg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><TagOutlined style={{ fontSize: '18px', color: THEME.primaryGreen }} /></div>
-                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>Tổng giá trị thực đơn</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{totalProductValue.toLocaleString()} đ</div></div>
+                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>{isStaff ? 'Nguyên liệu cần nhập' : 'Tổng giá trị thực đơn'}</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? lowStockCount : `${totalProductValue.toLocaleString()} đ`}</div></div>
               </Space>
             </div>
           </Card>
@@ -347,7 +347,10 @@ const Dashboard: React.FC = () => {
                 <text x="35" y="174" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.25) / 1000).toLocaleString()}k</text>
                 <text x="35" y="224" fill="#94a3b8" fontSize="11" textAnchor="end">0</text>
                 
+                {/* Render the smooth gradient area */}
                 {chartData.length > 0 && <path d={`${generateSmoothCurve(chartData)} L 770 220 L 50 220 Z`} fill="url(#chartGradient)" />}
+                
+                {/* Render the smooth stroke line */}
                 {chartData.length > 0 && <path d={generateSmoothCurve(chartData)} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
                 
                 {chartData.map((d, i) => <circle key={`circle-${i}`} cx={d.x} cy={d.y} r="5" fill="#16a34a" stroke="#fff" strokeWidth="2" />)}
@@ -359,12 +362,12 @@ const Dashboard: React.FC = () => {
 
         {/* Inventory Overview */}
         <Col xs={24} xl={8}>
-          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle, height: '100%' }} title={<span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>Tổng quan dữ liệu kho</span>}>
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle, height: '100%' }} title={<span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>{isStaff ? 'Tổng quan hoạt động' : 'Tổng quan dữ liệu kho'}</span>}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', gap: '22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Space size={12}>
                   <Avatar size="large" icon={<DollarCircleOutlined />} style={{ backgroundColor: THEME.lightGreenBg, color: THEME.primaryGreen }} />
-                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>Doanh thu (Theo bộ lọc)</div><div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{totalRevenue.toLocaleString()} đ</div></div>
+                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>Tổng doanh thu thực</div><div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{totalRevenue.toLocaleString()} đ</div></div>
                 </Space>
                 <Progress type="circle" percent={totalOrders > 0 ? 100 : 0} width={42} strokeColor={THEME.primaryGreen} strokeWidth={9} />
               </div>

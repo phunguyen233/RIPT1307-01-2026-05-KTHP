@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Layout, ConfigProvider } from "antd";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
@@ -12,6 +13,8 @@ import Inventory from "./pages/Inventory";
 import Ingredients from "./pages/Ingredients";
 import Recipes from "./pages/Recipes";
 import ApiKey from "./pages/ApiKey";
+import Staffs from "./pages/Staffs";
+import Reports from "./pages/Reports";
 import Auth from "./pages/Auth";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -20,6 +23,16 @@ const { Content, Sider } = Layout;
 
 function InnerApp() {
   const { token, sidebarCollapsed } = useAuth();
+  const currentUser = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, [token]);
+
+  const isStaff = currentUser?.role === 'staff';
 
   return (
     <Router>
@@ -55,7 +68,9 @@ function InnerApp() {
                 <Route path="/recipes" element={<RequireAuth><Recipes /></RequireAuth>} />
                 <Route path="/orders" element={<RequireAuth><Orders /></RequireAuth>} />
                 <Route path="/inventory" element={<RequireAuth><Inventory /></RequireAuth>} />
-                <Route path="/api-key" element={<RequireAuth><ApiKey /></RequireAuth>} />
+                <Route path="/staffs" element={isStaff ? <Navigate to="/dashboard" replace /> : <RequireAuth><Staffs /></RequireAuth>} />
+                <Route path="/reports" element={isStaff ? <Navigate to="/dashboard" replace /> : <RequireAuth><Reports /></RequireAuth>} />
+                <Route path="/api-key" element={isStaff ? <Navigate to="/dashboard" replace /> : <RequireAuth><ApiKey /></RequireAuth>} />
                 <Route path="*" element={<RequireAuth><Dashboard /></RequireAuth>} />
               </Routes>
             </Content>
