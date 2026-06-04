@@ -4,7 +4,6 @@ const paymentController = require('../controllers/payment');
 const { verifyTokenOrApiKey } = require('../middleware/authMiddleware');
 
 router.get('/checkout', paymentController.checkout);
-router.get('/vnpay', paymentController.generateVnPayUrl);
 router.post('/sepay/webhook', paymentController.handleSePayWebhook);
 // Create order + return SePay QR (called from shop frontend)
 router.post('/sepay/checkout', verifyTokenOrApiKey, paymentController.createSepayOrder);

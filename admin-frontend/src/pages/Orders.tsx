@@ -590,12 +590,7 @@ const Orders = () => {
 
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <h2 style={{
-                    fontSize: 32,
-                    fontWeight: 700,
-                    margin: 0,
-                    color: "#111827"
-                    }}
+                <h2 style={{ fontSize: 24, fontWeight: 'bold', color: '#111', margin: 0 }}
                     >
                         Quản lý đơn hàng</h2>
                 <Space>
@@ -649,187 +644,250 @@ const Orders = () => {
                 </Select>
             </div>
             {/* Thống kê đơn hàng */}
+{/* Stats Cards */}
 <div
-    style={{
-        display: "grid",
-        gridTemplateColumns: "280px 280px 280px 280px",
-        gap: 5,
-        marginBottom: 7,
-    }}
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: 20,
+    marginBottom: 32,
+  }}
 >
-    <Card
-        bordered={false}
-        style={{
-    borderRadius: 14,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-}}
-bodyStyle={{
-    padding: "14px 18px",
-}}
+  {/* Card 1 */}
+  <div
+    style={{
+      backgroundColor: "#fff",
+      padding: "12px 20px",
+      borderRadius: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      border: "1px solid #f3f4f6",
+      boxShadow:
+        "0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)",
+    }}
+  >
+    <div
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        backgroundColor: "#f0fdf4",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
     >
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>
-                <div style={{ color: "#6b7280" }}>Tổng đơn hàng</div>
-                <div
-                    style={{
-                        fontSize: 32,
-                        fontWeight: 500,
-                        marginTop: 8,
-                    }}
-                >
-                    {totalOrders}
-                </div>
-            </div>
-
-            <div
-                style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: "50%",
-                    background: "#e8f5e9",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
-            >
-                <ShoppingCartOutlined
-                    style={{
-                        fontSize: 26,
-                        color: "#22aa44",
-                    }}
-                />
-            </div>
-        </div>
-    </Card>
-
-    <Card
-        bordered={false}
+      <ShoppingCartOutlined
         style={{
-            borderRadius: 20,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+          fontSize: 20,
+          color: "#16a34a",
         }}
-    >
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>
-                <div style={{ color: "#6b7280" }}>Chờ xử lý</div>
-                <div
-                    style={{
-                        fontSize: 32,
-                        fontWeight: 700,
-                        marginTop: 8,
-                        color: "#faad14",
-                    }}
-                >
-                    {pendingOrders}
-                </div>
-            </div>
+      />
+    </div>
 
-            <div
-                style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: "50%",
-                    background: "#fff7e6",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
-            >
-                <ClockCircleOutlined
-                    style={{
-                        fontSize: 26,
-                        color: "#faad14",
-                    }}
-                />
-            </div>
-        </div>
-    </Card>
-
-    <Card
-        bordered={false}
+    <div>
+      <div
         style={{
-            borderRadius: 20,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+          color: "#6b7280",
+          fontSize: 13,
+          fontWeight: 500,
+          textTransform: "uppercase",
         }}
-    >
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>
-                <div style={{ color: "#6b7280" }}>Hoàn thành</div>
-                <div
-                    style={{
-                        fontSize: 32,
-                        fontWeight: 700,
-                        marginTop: 8,
-                        color: "#52c41a",
-                    }}
-                >
-                    {completedOrders}
-                </div>
-            </div>
+      >
+        Tổng đơn hàng
+      </div>
 
-            <div
-                style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: "50%",
-                    background: "#f6ffed",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
-            >
-                <CheckCircleOutlined
-                    style={{
-                        fontSize: 26,
-                        color: "#52c41a",
-                    }}
-                />
-            </div>
-        </div>
-    </Card>
-
-    <Card
-        bordered={false}
+      <div
         style={{
-            borderRadius: 20,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+          color: "#111",
+          fontSize: 24,
+          fontWeight: 700,
+          marginTop: 4,
         }}
-    >
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>
-                <div style={{ color: "#6b7280" }}>Đã hủy</div>
-                <div
-                    style={{
-                        fontSize: 32,
-                        fontWeight: 700,
-                        marginTop: 8,
-                        color: "#ff4d4f",
-                    }}
-                >
-                    {cancelledOrders}
-                </div>
-            </div>
+      >
+        {totalOrders}
+      </div>
+    </div>
+  </div>
 
-            <div
-                style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: "50%",
-                    background: "#fff1f0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
-            >
-                <CloseCircleOutlined
-                    style={{
-                        fontSize: 26,
-                        color: "#ff4d4f",
-                    }}
-                />
-            </div>
-        </div>
-    </Card>
+  {/* Card 2 */}
+  <div
+    style={{
+      backgroundColor: "#fff",
+      padding: "12px 20px",
+      borderRadius: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      border: "1px solid #f3f4f6",
+      boxShadow:
+        "0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)",
+    }}
+  >
+    <div
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        backgroundColor: "#fff7ed",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <ClockCircleOutlined
+        style={{
+          fontSize: 20,
+          color: "#f97316",
+        }}
+      />
+    </div>
+
+    <div>
+      <div
+        style={{
+          color: "#6b7280",
+          fontSize: 13,
+          fontWeight: 500,
+          textTransform: "uppercase",
+        }}
+      >
+        Chờ xử lý
+      </div>
+
+      <div
+        style={{
+          color: "#111",
+          fontSize: 24,
+          fontWeight: 700,
+          marginTop: 4,
+        }}
+      >
+        {pendingOrders}
+      </div>
+    </div>
+  </div>
+
+  {/* Card 3 */}
+  <div
+    style={{
+      backgroundColor: "#fff",
+      padding: "12px 20px",
+      borderRadius: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      border: "1px solid #f3f4f6",
+      boxShadow:
+        "0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)",
+    }}
+  >
+    <div
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        backgroundColor: "#f0fdf4",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <CheckCircleOutlined
+        style={{
+          fontSize: 20,
+          color: "#16a34a",
+        }}
+      />
+    </div>
+
+    <div>
+      <div
+        style={{
+          color: "#6b7280",
+          fontSize: 13,
+          fontWeight: 500,
+          textTransform: "uppercase",
+        }}
+      >
+        Hoàn thành
+      </div>
+
+      <div
+        style={{
+          color: "#111",
+          fontSize: 24,
+          fontWeight: 700,
+          marginTop: 4,
+        }}
+      >
+        {completedOrders}
+      </div>
+    </div>
+  </div>
+
+  {/* Card 4 */}
+  <div
+    style={{
+      backgroundColor: "#fff",
+      padding: "12px 20px",
+      borderRadius: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      border: "1px solid #f3f4f6",
+      boxShadow:
+        "0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02)",
+    }}
+  >
+    <div
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        backgroundColor: "#fef2f2",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <CloseCircleOutlined
+        style={{
+          fontSize: 20,
+          color: "#ef4444",
+        }}
+      />
+    </div>
+
+    <div>
+      <div
+        style={{
+          color: "#6b7280",
+          fontSize: 13,
+          fontWeight: 500,
+          textTransform: "uppercase",
+        }}
+      >
+        Đã hủy
+      </div>
+
+      <div
+        style={{
+          color: "#111",
+          fontSize: 24,
+          fontWeight: 700,
+          marginTop: 4,
+        }}
+      >
+        {cancelledOrders}
+      </div>
+    </div>
+  </div>
 </div>
 
             <Table

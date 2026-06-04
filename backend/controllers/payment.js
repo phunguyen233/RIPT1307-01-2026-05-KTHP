@@ -1,13 +1,8 @@
 const crypto = require('crypto');
-const qs = require('qs');
 const ordersController = require('./orders');
 const db = require('../config/db');
 require('dotenv').config();
 
-const VN_PAY_URL = process.env.VNP_URL;
-const VNP_TMNCODE = process.env.VNP_TMNCODE;
-const VNP_HASHSECRET = process.env.VNP_HASHSECRET;
-const VNP_RETURN_URL = process.env.VNP_RETURN_URL;
 const SEPAY_SECRET = process.env.SEPAY_SECRET;
 const SEPAY_BANK_NAME = process.env.BANK_NAME;
 const SEPAY_BANK_ACCOUNT = process.env.BANK_ACCOUNT;
@@ -53,25 +48,12 @@ const generateSepayQr = () => {
   };
 };
 
-const sortObject = (obj) => {
-  const sorted = {};
-  const keys = Object.keys(obj).map((key) => encodeURIComponent(key)).sort();
+exports.checkout = async (req, res, next) => {
+  if (!hasSePayConfig()) {
+    return res.status(500).json({ error: 'SePay configuration is missing' });
+  }
 
-  keys.forEach((encodedKey) => {
-    const originalKey = decodeURIComponent(encodedKey);
-    const value = obj[originalKey];
-    sorted[encodedKey] = encodeURIComponent(value).replace(/%20/g, '+');
-  });
-
-  return sorted;
-};
-
-exports.generateVnPayUrl = async (req, res, next) => {
   try {
-    if (!VN_PAY_URL || !VNP_TMNCODE || !VNP_HASHSECRET || !VNP_RETURN_URL) {
-      return res.status(500).json({ error: 'VNPay configuration is missing' });
-    }
-
     const amount = Number(req.query.amount || req.body.amount);
     const info = String(req.query.info || req.body.info || '').trim();
     const orderId = String(req.query.orderId || req.body.orderId || Date.now().toString()).trim();
@@ -83,73 +65,21 @@ exports.generateVnPayUrl = async (req, res, next) => {
       return res.status(400).json({ error: 'Info thanh toán là bắt buộc' });
     }
 
-    const createdAt = new Date();
-    const createDate = formatDate(createdAt);
-    const ipAddr = getClientIp(req);
-
-    const vnpParams = {
-      vnp_Version: '2.1.0',
-      vnp_Command: 'pay',
-      vnp_TmnCode: VNP_TMNCODE,
-      vnp_Amount: String(amount * 100),
-      vnp_CurrCode: 'VND',
-      vnp_TxnRef: orderId,
-      vnp_OrderInfo: info,
-      vnp_OrderType: 'other',
-      vnp_Locale: 'vn',
-      vnp_ReturnUrl: VNP_RETURN_URL,
-      vnp_CreateDate: createDate,
-      vnp_IpAddr: ipAddr,
-    };
-
-    const sortedParams = sortObject(vnpParams);
-    const signData = qs.stringify(sortedParams, { encode: false });
-
-    const secureHash = crypto
-      .createHmac('sha512', VNP_HASHSECRET)
-      .update(Buffer.from(signData, 'utf-8'))
-      .digest('hex');
-
-    sortedParams.vnp_SecureHash = secureHash;
-    const paymentUrl = `${VN_PAY_URL}?${qs.stringify(sortedParams, { encode: false })}`;
-
-    return res.json({ method: 'VNPAY', redirectUrl: paymentUrl });
+    const sepayData = generateSepayQr();
+    const qrUrl = `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(info)}&des=${encodeURIComponent(info)}&addInfo=${encodeURIComponent(info)}`;
+    console.log('Generated SePay QR URL (checkout):', qrUrl);
+    return res.json({
+      method: 'SEPAY',
+      qrUrl,
+      bankName: sepayData.bankName,
+      bankAccount: sepayData.bankAccount,
+      accountName: sepayData.accountName,
+      amount,
+      orderId,
+    });
   } catch (error) {
-    next(error);
+    return next(error);
   }
-};
-
-exports.checkout = async (req, res, next) => {
-  if (hasSePayConfig()) {
-    try {
-      const amount = Number(req.query.amount || req.body.amount);
-      const info = String(req.query.info || req.body.info || '').trim();
-      const orderId = String(req.query.orderId || req.body.orderId || Date.now().toString()).trim();
-
-      if (!amount || Number.isNaN(amount) || amount <= 0) {
-        return res.status(400).json({ error: 'Amount phải lớn hơn 0' });
-      }
-      if (!info) {
-        return res.status(400).json({ error: 'Info thanh toán là bắt buộc' });
-      }
-
-      const sepayData = generateSepayQr();
-      const qrUrl = `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(info)}&des=${encodeURIComponent(info)}&addInfo=${encodeURIComponent(info)}`;
-      console.log('Generated SePay QR URL (checkout):', qrUrl);
-      return res.json({
-        method: 'SEPAY',
-        qrUrl,
-        bankName: sepayData.bankName,
-        bankAccount: sepayData.bankAccount,
-        accountName: sepayData.accountName,
-        amount,
-        orderId,
-      });
-    } catch (error) {
-      return next(error);
-    }
-  }
-  return exports.generateVnPayUrl(req, res, next);
 };
 
 exports.handleSePayWebhook = async (req, res, next) => {

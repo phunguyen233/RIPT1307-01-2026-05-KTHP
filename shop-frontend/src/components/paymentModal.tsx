@@ -119,7 +119,7 @@ export default function PaymentModal({ maDonHang = null, amount: initAmount = 0,
 
   return (
     <div className="p-4 bg-white rounded-lg shadow-md w-[350px] max-w-full">
-      <h2 className="text-xl font-bold mb-3">Thanh toán {paymentMethod === 'SEPAY' ? 'SePay' : 'VNPay'}</h2>
+      <h2 className="text-xl font-bold mb-3">Thanh toán SePay</h2>
 
       {errorMessage ? (
         <div className="rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-700">
