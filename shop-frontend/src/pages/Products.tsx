@@ -43,6 +43,7 @@ export default function Products({ onLogout }: ProductsProps) {
           mo_ta: row.description,
           hien_thi: row.is_active,
           category_id: row.category_id,
+          created_at: row.created_at,
         }));
         setProducts(mapped);
       })
@@ -56,6 +57,15 @@ export default function Products({ onLogout }: ProductsProps) {
       .then(data => setCategories(data))
       .catch(err => console.error("Lỗi khi tải danh mục:", err));
   }, []);
+
+  const isNewProduct = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const createdDate = new Date(dateStr);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
+  };
 
   const handleAddToCart = (product: Product) => {
     try {
@@ -246,9 +256,11 @@ export default function Products({ onLogout }: ProductsProps) {
                       onClick={() => navigate(`/products/details/${p.id}${window.location.search}`)}
                     >
                       {/* Badge "Mới" */}
-                      <div className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
-                        Mới
-                      </div>
+                      {isNewProduct(p.created_at) && (
+                        <div className="absolute top-3 left-3 z-10 bg-[#16a34a] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm">
+                          Mới
+                        </div>
+                      )}
                       
                       {/* Heart Icon */}
                       <button 

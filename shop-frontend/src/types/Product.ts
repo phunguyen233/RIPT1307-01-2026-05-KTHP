@@ -7,4 +7,5 @@ export interface Product {
   hien_thi: boolean;
   mo_ta?: string;
   category_id?: number;
+  created_at?: string;
 }

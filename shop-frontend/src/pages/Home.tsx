@@ -41,6 +41,7 @@ export default function Home() {
         hinh_anh: row.image_url,
         mo_ta: row.description,
         hien_thi: row.is_active,
+        created_at: row.created_at,
       }));
       console.log("Mapped products:", mapped);
       setProducts(mapped);
@@ -117,6 +118,15 @@ export default function Home() {
       x: dir > 0 ? -300 : 300,
       opacity: 0,
     }),
+  };
+
+  const isNewProduct = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const createdDate = new Date(dateStr);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
   };
 
   return (
@@ -232,9 +242,11 @@ export default function Home() {
               <Link key={p.id} to={`/products/details/${p.id}`} className="bg-white rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col overflow-hidden hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all duration-300 transform hover:-translate-y-1">
                 {/* Image Section */}
                 <div className="relative aspect-[4/3] w-full bg-gray-50 overflow-hidden">
-                  <div className="absolute top-3 left-3 z-10 bg-[#16a34a] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm">
-                    Mới
-                  </div>
+                  {isNewProduct(p.created_at) && (
+                    <div className="absolute top-3 left-3 z-10 bg-[#16a34a] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm">
+                      Mới
+                    </div>
+                  )}
                   <img 
                     src={resolveImageUrl(p.hinh_anh)} 
                     alt={p.ten_san_pham} 
