@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Select, InputNumber, message, Space } from "antd";
-import { PlusOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Table, Button, Form, Input, Select, InputNumber, message, Space } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 import { Ingredient } from "../types";
 import { ingredientAPI } from "../api/ingredientAPI";
 import { receiptAPI } from "../api/receiptAPI";
@@ -76,7 +76,6 @@ const InventoryImport: React.FC = () => {
         import_price: Number(formData.import_price)
       });
 
-      // Get updated ingredient data to show new stock and avg price
       const updatedIngredients = await ingredientAPI.getAll();
       const updatedIngredient = updatedIngredients.find(ing => ing.id === formData.ingredient_id);
 
@@ -173,7 +172,6 @@ const InventoryImport: React.FC = () => {
         </div>
       )}
 
-      {/* Import Form */}
       <div style={{ backgroundColor: '#fafafa', padding: 20, borderRadius: 8, marginBottom: 24 }}>
         <h3 style={{ marginBottom: 16 }}>Nhập nguyên liệu mới</h3>
         <div style={{ display: 'flex', gap: 16, alignItems: 'end', flexWrap: 'wrap' }}>
@@ -245,7 +243,6 @@ const InventoryImport: React.FC = () => {
         </div>
       </div>
 
-      {/* Import History */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3>Lịch sử nhập kho</h3>
