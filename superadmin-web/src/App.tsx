@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Menu, Button, Typography } from 'antd';
+import { Layout, Menu, Button, Typography, ConfigProvider } from 'antd';
 import {
   DashboardOutlined,
   ShopOutlined,
@@ -31,14 +31,14 @@ const AppLayout: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0">
+      <Sider breakpoint="lg" collapsedWidth="0" theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
         <div className="logo">
-          <Title level={4} style={{ color: '#fff', margin: 0 }}>
-            Superadmin
+          <Title level={4} style={{ color: '#16a34a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            SuperAdmin
           </Title>
         </div>
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           selectedKeys={[selectedKey]}
           onClick={handleMenuSelect}
@@ -47,17 +47,18 @@ const AppLayout: React.FC = () => {
             { key: 'shops', icon: <ShopOutlined />, label: 'Quản lý Shop' },
             { key: 'admin-users', icon: <UserOutlined />, label: 'Quản lý người dùng' },
           ]}
+          style={{ borderRight: 0 }}
         />
       </Sider>
-      <Layout>
+      <Layout style={{ background: '#f8fafc' }}>
         <Header className="site-layout-header">
           <div className="header-content">
             <div>
-              <Title level={5} style={{ color: '#fff', margin: 0, display: 'inline-block' }}>
+              <Title level={5} style={{ color: '#334155', margin: 0, display: 'inline-block' }}>
                 Xin chào, {user?.name || 'Superadmin'}
               </Title>
             </div>
-            <Button icon={<LogoutOutlined />} type="primary" danger onClick={() => { logout(); navigate('/login'); }}>
+            <Button icon={<LogoutOutlined />} type="default" onClick={() => { logout(); navigate('/login'); }}>
               Đăng xuất
             </Button>
           </div>
@@ -79,21 +80,37 @@ const AppLayout: React.FC = () => {
 };
 
 const App: React.FC = () => (
-  <AuthProvider>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/*"
-          element={
-            <RequireAuth>
-              <AppLayout />
-            </RequireAuth>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
-  </AuthProvider>
+  <ConfigProvider
+    theme={{
+      token: {
+        colorPrimary: '#16a34a',
+        borderRadius: 8,
+        colorBgContainer: '#ffffff',
+      },
+      components: {
+        Layout: {
+          siderBg: '#ffffff',
+          headerBg: '#ffffff',
+        },
+      },
+    }}
+  >
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/*"
+            element={
+              <RequireAuth>
+                <AppLayout />
+              </RequireAuth>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  </ConfigProvider>
 );
 
 export default App;
