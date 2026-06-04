@@ -11,7 +11,7 @@ import {
   BellOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
-import dayjs from 'dayjs'; // IMPORTANT: Load dayjs for date/time manipulation
+import dayjs from 'dayjs';
 
 // API Imports
 import { ingredientAPI } from '../api/ingredientAPI'; 
@@ -33,11 +33,26 @@ const THEME = {
 };
 
 const Dashboard: React.FC = () => {
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isFetching, setIsFetching] = useState<boolean>(true);
+  
+  // ==========================================
+  // FIX LỖI Ở ĐÂY: KHAI BÁO BIẾN PHÂN QUYỀN
+  // ==========================================
+  const currentUserRole = (() => {
+    try {
+      const raw = localStorage.getItem('user');
+      const user = raw ? JSON.parse(raw) : null;
+      return user?.role || '';
+    } catch {
+      return '';
+    }
+  })();
+  const isStaff = currentUserRole === 'staff';
+  // ==========================================
   
   // 1. STATE FOR FILTERS (Time & Search)
   const [timeFilter, setTimeFilter] = useState<string>('all');
-  const [searchText, setSearchText] = useState<string>(''); // <== NEW: State to store search input
+  const [searchText, setSearchText] = useState<string>(''); 
   
   // 2. STATE FOR RAW DATA STORAGE (Fetch API only once)
   const [rawOrders, setRawOrders] = useState<any[]>([]);
@@ -82,22 +97,18 @@ const Dashboard: React.FC = () => {
     fetchAllDashboardData();
   }, []);
 
-  // PHASE 2: PROCESS & FILTER DATA (Runs when timeFilter OR searchText changes)
+  // PHASE 2: PROCESS & FILTER DATA
   useEffect(() => {
     if (isFetching) return;
 
-    // --- Process Inventory Data ---
     setTotalIngredients(rawIngredients.length);
     setLowStockCount(rawIngredients.filter((item: any) => (item.stock_quantity || 0) < 250).length);
 
-    // --- Process Product Data ---
     setTotalProducts(rawProducts.length);
     setTotalProductValue(rawProducts.reduce((sum, p) => sum + (Number(p.price) || 0), 0));
 
-    // --- CORE LOGIC: FILTER ORDERS BASED ON TIME AND SEARCH ---
     const now = dayjs();
     const filteredOrders = rawOrders.filter(order => {
-      // 1. Check Time Filter
       if (timeFilter !== 'all' && order.created_at) {
         const orderDate = dayjs(order.created_at);
         if (timeFilter === 'today' && !orderDate.isSame(now, 'day')) return false;
@@ -105,34 +116,29 @@ const Dashboard: React.FC = () => {
         if (timeFilter === 'this_month' && !orderDate.isSame(now, 'month')) return false;
       }
 
-      // 2. Check Search Text (Case-insensitive matching)
       if (searchText.trim() !== '') {
         const query = searchText.toLowerCase();
         const customerName = (order.customer_name || 'khách vãng lai').toLowerCase();
         const orderIdStr = String(order.id || order.order_code || '').toLowerCase();
         
-        // If neither the name nor the ID contains the search query, exclude this order
         if (!customerName.includes(query) && !orderIdStr.includes(query)) {
           return false;
         }
       }
 
-      return true; // Keep order if it passes both filters
+      return true;
     });
 
-    // --- Recalculate metrics based on the filtered orders ---
     setTotalOrders(filteredOrders.length);
     setTotalRevenue(filteredOrders.reduce((sum, order) => {
       if (order.status === 'completed') return sum + (Number(order.total_price) || 0);
       return sum;
     }, 0));
 
-    // Sort chronologically
     const sortedOrders = [...filteredOrders].sort((a, b) => 
       new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
     );
 
-    // Populate Tables and Activities
     const top5Orders = sortedOrders.slice(0, 5).map((order) => {
       let statusText = 'Đang xử lý'; let color = 'warning';
       if (order.status === 'completed') { statusText = 'Đã hoàn thành'; color = 'success'; } 
@@ -165,7 +171,6 @@ const Dashboard: React.FC = () => {
     });
     setSalesActivities(activities);
 
-    // Calculate Best Sellers
     const productSalesCount: Record<number, number> = {};
     filteredOrders.forEach(order => {
       const status = (order.status || '').toLowerCase();
@@ -190,7 +195,6 @@ const Dashboard: React.FC = () => {
     }).filter(item => item.soldCount > 0).sort((a, b) => b.soldCount - a.soldCount).slice(0, 5);
     setRealBestSellers(bestSellersData);
 
-    // Generate Chart Data
     const last7Days = Array.from({length: 7}).map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
@@ -223,7 +227,7 @@ const Dashboard: React.FC = () => {
     
     setChartData(newChartData);
 
-  }, [rawOrders, rawProducts, rawIngredients, timeFilter, searchText, isFetching]); // <== Added searchText to dependencies
+  }, [rawOrders, rawProducts, rawIngredients, timeFilter, searchText, isFetching]);
 
   const generateSmoothCurve = (data: {x: number, y: number}[]) => {
     if (data.length === 0) return '';
@@ -254,7 +258,6 @@ const Dashboard: React.FC = () => {
         <Title level={4} style={{ color: THEME.textDark, margin: 0, fontWeight: 600, fontSize: '18px' }}>Bảng điều khiển hệ thống</Title>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           
-          {/* SEARCH INPUT - NOW FULLY WIRED */}
           <Input 
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -310,7 +313,14 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Space size={12}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: THEME.lightGreenBg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><DollarCircleOutlined style={{ fontSize: '18px', color: THEME.primaryGreen }} /></div>
-                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>Doanh thu thật</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{totalRevenue.toLocaleString()} đ</div></div>
+                <div>
+                  <div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>
+                    {isStaff ? 'Đơn hàng đã xử lý' : `Doanh thu ${timeFilter !== 'all' || searchText ? '(Đã lọc)' : ''}`}
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>
+                    {isStaff ? totalOrders : `${totalRevenue.toLocaleString()} đ`}
+                  </div>
+                </div>
               </Space>
             </div>
           </Card>
@@ -320,7 +330,14 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Space size={12}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: THEME.lightGreenBg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><TagOutlined style={{ fontSize: '18px', color: THEME.primaryGreen }} /></div>
-                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>{isStaff ? 'Nguyên liệu cần nhập' : 'Tổng giá trị thực đơn'}</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? lowStockCount : `${totalProductValue.toLocaleString()} đ`}</div></div>
+                <div>
+                  <div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>
+                    {isStaff ? 'Nguyên liệu cần nhập' : 'Tổng giá trị thực đơn'}
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>
+                    {isStaff ? lowStockCount : `${totalProductValue.toLocaleString()} đ`}
+                  </div>
+                </div>
               </Space>
             </div>
           </Card>
@@ -330,44 +347,45 @@ const Dashboard: React.FC = () => {
       {/* Main Content Area */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         
-        {/* Revenue SVG Chart */}
-        <Col xs={24} xl={16}>
-          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<Space size={6}><span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>Doanh thu 7 ngày qua</span><InfoCircleOutlined style={{ color: '#cbd5e1', fontSize: '13px' }} /></Space>}>
-            <div style={{ width: '100%', height: '240px' }}>
-              <svg width="100%" height="100%" viewBox="0 0 800 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                <defs><linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#16a34a" stopOpacity="0.15" /><stop offset="100%" stopColor="#16a34a" stopOpacity="0.00" /></linearGradient></defs>
-                <line x1="45" y1="20" x2="780" y2="20" stroke="#f1f5f9" strokeDasharray="3" />
-                <line x1="45" y1="70" x2="780" y2="70" stroke="#f1f5f9" strokeDasharray="3" />
-                <line x1="45" y1="120" x2="780" y2="120" stroke="#f1f5f9" strokeDasharray="3" />
-                <line x1="45" y1="170" x2="780" y2="170" stroke="#f1f5f9" strokeDasharray="3" />
-                <line x1="45" y1="220" x2="780" y2="220" stroke="#cbd5e1" strokeWidth="1" />
-                <text x="35" y="24" fill="#94a3b8" fontSize="11" textAnchor="end">{(chartMax / 1000).toLocaleString()}k</text>
-                <text x="35" y="74" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.75) / 1000).toLocaleString()}k</text>
-                <text x="35" y="124" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.5) / 1000).toLocaleString()}k</text>
-                <text x="35" y="174" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.25) / 1000).toLocaleString()}k</text>
-                <text x="35" y="224" fill="#94a3b8" fontSize="11" textAnchor="end">0</text>
-                
-                {/* Render the smooth gradient area */}
-                {chartData.length > 0 && <path d={`${generateSmoothCurve(chartData)} L 770 220 L 50 220 Z`} fill="url(#chartGradient)" />}
-                
-                {/* Render the smooth stroke line */}
-                {chartData.length > 0 && <path d={generateSmoothCurve(chartData)} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-                
-                {chartData.map((d, i) => <circle key={`circle-${i}`} cx={d.x} cy={d.y} r="5" fill="#16a34a" stroke="#fff" strokeWidth="2" />)}
-                {chartData.map((d, i) => <text key={`text-${i}`} x={d.x} y="238" fill="#94a3b8" fontSize="11" textAnchor="middle">{d.day}</text>)}
-              </svg>
-            </div>
-          </Card>
-        </Col>
+        {/* CHỈ HIỆN BIỂU ĐỒ CHO CHỦ QUÁN */}
+        {!isStaff && (
+          <Col xs={24} xl={16}>
+            <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<Space size={6}><span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>Doanh thu 7 ngày qua</span><InfoCircleOutlined style={{ color: '#cbd5e1', fontSize: '13px' }} /></Space>}>
+              <div style={{ width: '100%', height: '240px' }}>
+                <svg width="100%" height="100%" viewBox="0 0 800 240" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                  <defs><linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#16a34a" stopOpacity="0.15" /><stop offset="100%" stopColor="#16a34a" stopOpacity="0.00" /></linearGradient></defs>
+                  <line x1="45" y1="20" x2="780" y2="20" stroke="#f1f5f9" strokeDasharray="3" />
+                  <line x1="45" y1="70" x2="780" y2="70" stroke="#f1f5f9" strokeDasharray="3" />
+                  <line x1="45" y1="120" x2="780" y2="120" stroke="#f1f5f9" strokeDasharray="3" />
+                  <line x1="45" y1="170" x2="780" y2="170" stroke="#f1f5f9" strokeDasharray="3" />
+                  <line x1="45" y1="220" x2="780" y2="220" stroke="#cbd5e1" strokeWidth="1" />
+                  <text x="35" y="24" fill="#94a3b8" fontSize="11" textAnchor="end">{(chartMax / 1000).toLocaleString()}k</text>
+                  <text x="35" y="74" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.75) / 1000).toLocaleString()}k</text>
+                  <text x="35" y="124" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.5) / 1000).toLocaleString()}k</text>
+                  <text x="35" y="174" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.25) / 1000).toLocaleString()}k</text>
+                  <text x="35" y="224" fill="#94a3b8" fontSize="11" textAnchor="end">0</text>
+                  
+                  {chartData.length > 0 && <path d={`${generateSmoothCurve(chartData)} L 770 220 L 50 220 Z`} fill="url(#chartGradient)" />}
+                  {chartData.length > 0 && <path d={generateSmoothCurve(chartData)} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                  
+                  {chartData.map((d, i) => <circle key={`circle-${i}`} cx={d.x} cy={d.y} r="5" fill="#16a34a" stroke="#fff" strokeWidth="2" />)}
+                  {chartData.map((d, i) => <text key={`text-${i}`} x={d.x} y="238" fill="#94a3b8" fontSize="11" textAnchor="middle">{d.day}</text>)}
+                </svg>
+              </div>
+            </Card>
+          </Col>
+        )}
 
-        {/* Inventory Overview */}
-        <Col xs={24} xl={8}>
+        <Col xs={24} xl={isStaff ? 24 : 8}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle, height: '100%' }} title={<span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>{isStaff ? 'Tổng quan hoạt động' : 'Tổng quan dữ liệu kho'}</span>}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', gap: '22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Space size={12}>
                   <Avatar size="large" icon={<DollarCircleOutlined />} style={{ backgroundColor: THEME.lightGreenBg, color: THEME.primaryGreen }} />
-                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>Tổng doanh thu thực</div><div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{totalRevenue.toLocaleString()} đ</div></div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: THEME.textSecondary }}>{isStaff ? 'Tổng đơn hàng' : 'Doanh thu (Theo bộ lọc)'}</div>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? totalOrders : `${totalRevenue.toLocaleString()} đ`}</div>
+                  </div>
                 </Space>
                 <Progress type="circle" percent={totalOrders > 0 ? 100 : 0} width={42} strokeColor={THEME.primaryGreen} strokeWidth={9} />
               </div>
