@@ -19,6 +19,7 @@ const recipesRoutes = require('./routes/recipes');
 const recipeIngredientsRoutes = require('./routes/recipeIngredients');
 const inventoryImportsRoutes = require('./routes/inventoryImports');
 const inventoryLogsRoutes = require('./routes/inventoryLogs');
+const reportsRoutes = require('./routes/reports');
 const paymentRoutes = require('./routes/payment');
 const adminRoutes = require('./routes/admin');
 
@@ -51,6 +52,7 @@ app.use('/api/orders', verifyTokenOrApiKey, ordersRoutes);
 app.use('/api/shops/admin', verifyAdminToken, shopsRoutes);
 app.use('/api/admin', verifyAdminToken, adminRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/reports', reportsRoutes);
 app.use('/api/order-items', verifyAdminToken, orderItemsRoutes);
 app.use('/api/ingredients', verifyAdminToken, ingredientsRoutes);
 app.use('/api/recipes', verifyAdminToken, recipesRoutes);
