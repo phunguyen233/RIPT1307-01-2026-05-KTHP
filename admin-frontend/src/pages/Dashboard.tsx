@@ -77,24 +77,29 @@ const Dashboard: React.FC = () => {
   const socketRef = useRef<Socket | null>(null);
 
   const addNotification = (data: any) => {
-    const orderId = data?.id || data?.order?.id || data?.order_code || 'chưa rõ';
+    const rawOrderCode = data?.order_code || data?.order?.order_code || data?.order_code || data?.id || data?.order?.id || 'chưa rõ';
+    const orderId = data?.id || data?.order?.id || rawOrderCode;
+    const orderNumberMatch = String(rawOrderCode).match(/DH(\d+)/i);
+    const spokenOrderNumber = orderNumberMatch ? orderNumberMatch[1] : orderId;
+    const displayOrderCode = String(rawOrderCode).startsWith('DH') ? `#${rawOrderCode}` : `#${orderId}`;
+
     const newNotification: NotificationItem = {
       id: `${Date.now()}-${orderId}`,
       title: 'Đơn hàng mới',
-      description: `Mã đơn ${orderId} vừa được tạo.`,
+      description: `Mã đơn ${displayOrderCode} vừa được tạo.`,
       time: dayjs().format('HH:mm DD/MM/YYYY'),
-      orderCode: `#${data?.order_code || orderId}`,
+      orderCode: displayOrderCode,
     };
 
     setNotifications((prev) => [newNotification, ...prev].slice(0, 10));
     setUnreadCount((prev) => prev + 1);
     notification.success({
       message: 'Đơn hàng mới',
-      description: `Mã đơn ${orderId}`,
+      description: `Mã đơn ${displayOrderCode}`,
     });
 
     if ('speechSynthesis' in window) {
-      const speech = new SpeechSynthesisUtterance(`Bạn có đơn hàng mới mã số ${orderId}`);
+      const speech = new SpeechSynthesisUtterance(`Bạn có đơn hàng mới mã số ${spokenOrderNumber}`);
       speech.lang = 'vi-VN';
       window.speechSynthesis.speak(speech);
     }
