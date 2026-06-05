@@ -22,7 +22,7 @@ const ProductDetails = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState('description');
+  // reviews removed - only show description
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -236,39 +236,11 @@ const ProductDetails = () => {
 
             {/* Bottom Tabs Section */}
             <div className="border-t border-secondary pt-6 mb-16">
-              <div className="flex justify-center gap-8 md:gap-16 border-b border-secondary pb-4 mb-8">
-                <button 
-                  onClick={() => setActiveTab('description')}
-                  className={`text-base font-bold transition-colors relative ${activeTab === 'description' ? 'text-text' : 'text-text/50 hover:text-text'}`}
-                >
-                  Mô tả
-                  {activeTab === 'description' && (
-                    <span className="absolute -bottom-[17px] left-0 right-0 h-[2px] bg-danger"></span>
-                  )}
-                </button>
-                <button 
-                  onClick={() => setActiveTab('reviews')}
-                  className={`text-base font-bold transition-colors relative ${activeTab === 'reviews' ? 'text-text' : 'text-text/50 hover:text-text'}`}
-                >
-                  Đánh giá
-                  {activeTab === 'reviews' && (
-                    <span className="absolute -bottom-[17px] left-0 right-0 h-[2px] bg-danger"></span>
-                  )}
-                </button>
-              </div>
-
-              {/* Tab Content */}
               <div className="max-w-4xl mx-auto">
-                {activeTab === 'description' && (
-                  <div className="animate-fade-in text-text/80 leading-relaxed text-justify whitespace-pre-wrap">
-                    {product.description || "Chưa có mô tả cho sản phẩm này."}
-                  </div>
-                )}
-                {activeTab === 'reviews' && (
-                  <div className="animate-fade-in text-text/80 text-center py-10">
-                    Chưa có đánh giá nào.
-                  </div>
-                )}
+                <h3 className="text-lg font-bold mb-4">Mô tả</h3>
+                <div className="animate-fade-in text-text/80 leading-relaxed text-justify whitespace-pre-wrap">
+                  {product.description || "Chưa có mô tả cho sản phẩm này."}
+                </div>
               </div>
             </div>
           </>

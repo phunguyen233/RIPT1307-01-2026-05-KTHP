@@ -13,6 +13,13 @@ export default function Cart() {
   const location = useLocation();
 
   useEffect(() => {
+    const stateFrom = (location.state as any) || {};
+    if (stateFrom.autoCheckout) {
+      setShowCheckout(true);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     const raw = localStorage.getItem("cart");
     setCart(raw ? JSON.parse(raw) : []);
   }, []);
@@ -372,7 +379,20 @@ export default function Cart() {
                     <span className="text-green-600 font-bold text-[16px]">{Number(total).toLocaleString()} ₫</span>
                   </div>
                   <button 
-                    onClick={() => setShowCheckout(true)} 
+                    onClick={() => {
+                      const storedUser = localStorage.getItem('user');
+                      if (!storedUser) {
+                        toast.info(
+                          <div>
+                            <div className="font-bold text-gray-800 text-base mb-1">Yêu cầu đăng nhập</div>
+                            <div className="text-gray-600 text-sm">Vui lòng đăng nhập hoặc đăng ký để mua hàng</div>
+                          </div>
+                        );
+                        navigate('/auth', { state: { from: '/cart', autoCheckout: true } });
+                        return;
+                      }
+                      setShowCheckout(true);
+                    }} 
                     className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold uppercase py-3 rounded-full transition-colors"
                   >
                     Thanh toán

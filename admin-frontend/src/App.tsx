@@ -17,7 +17,6 @@ import Staffs from "./pages/Staffs";
 import Reports from "./pages/Reports";
 import Auth from "./pages/Auth";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { ThemeProvider } from "./contexts/ThemeContext";
 
 const { Content, Sider } = Layout;
 
@@ -92,19 +91,17 @@ function InnerApp() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <ConfigProvider
-          theme={{
-            token: {
-              colorPrimary: '#16a34a',
-            },
-          }}
-        >
-          <InnerApp />
-        </ConfigProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <ConfigProvider
+        theme={{
+          token: {
+            colorPrimary: '#16a34a',
+          },
+        }}
+      >
+        <InnerApp />
+      </ConfigProvider>
+    </AuthProvider>
   );
 }
 

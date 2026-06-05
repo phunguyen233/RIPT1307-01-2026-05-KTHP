@@ -5,19 +5,16 @@ import {
   MenuUnfoldOutlined, 
   UserOutlined, 
   LogoutOutlined, 
-  MoonOutlined, 
-  SunOutlined,
   ShopOutlined // Tao import thêm cái icon Cửa hàng ở đây
 } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
-import { useTheme } from "../contexts/ThemeContext";
+// theme removed
 
 const { Header: AntHeader } = Layout;
 
 export default function Header() {
   const navigate = useNavigate();
   const { setToken, sidebarCollapsed, setSidebarCollapsed } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   
   // Lấy data user từ két sắt
   const userRaw = localStorage.getItem("user");
@@ -70,11 +67,7 @@ export default function Header() {
           Xem cửa hàng
         </Button>
 
-        <Button
-          type="text"
-          icon={theme === 'dark' ? <SunOutlined /> : <MoonOutlined />}
-          onClick={toggleTheme}
-        />
+        {/* theme toggle removed */}
         
         {user && (
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">

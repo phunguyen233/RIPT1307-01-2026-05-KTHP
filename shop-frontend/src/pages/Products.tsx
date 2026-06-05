@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Search, ShoppingCart, Heart, Star } from "lucide-react";
+import { Search, ShoppingCart } from "lucide-react";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { Product } from "../types/Product";
 import { resolveImageUrl } from "../api/imageHelper";
@@ -262,13 +262,7 @@ export default function Products({ onLogout }: ProductsProps) {
                         </div>
                       )}
                       
-                      {/* Heart Icon */}
-                      <button 
-                        className="absolute top-2 right-2 z-10 bg-white p-1.5 rounded-full shadow-sm text-gray-500 hover:text-red-500 hover:bg-gray-50 transition-colors focus:outline-none"
-                        onClick={(e) => { e.stopPropagation(); toast.success('Đã thêm vào danh sách yêu thích'); }}
-                      >
-                        <Heart className="w-4 h-4" />
-                      </button>
+                      {/* favorite removed */}
 
                       <img
                         src={resolveImageUrl(p.hinh_anh)}
@@ -302,16 +296,7 @@ export default function Products({ onLogout }: ProductsProps) {
                         {p.ten_san_pham}
                       </h2>
                       
-                      {/* Rating Stars (Mocked to match design) */}
-                      <div className="flex items-center gap-1 mb-2.5">
-                        <div className="flex text-yellow-400">
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current text-yellow-400/50" />
-                        </div>
-                      </div>
+                      {/* ratings removed */}
 
                       <p className="text-gray-900 font-bold text-[16px] mb-4">{Number(p.gia_ban).toLocaleString()} ₫</p>
 

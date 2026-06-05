@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
-import { ShoppingCart, Heart, Star } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { Product } from "../types/Product";
 import CartProduct from "../components/cartProduct";
 import productsAPI from "../api/productsAPI";
@@ -270,13 +270,7 @@ export default function Home() {
                         </div>
                       )}
                       
-                      {/* Heart Icon */}
-                      <button 
-                        className="absolute top-2 right-2 z-10 bg-white p-1.5 rounded-full shadow-sm text-gray-500 hover:text-red-500 hover:bg-gray-50 transition-colors focus:outline-none"
-                        onClick={(e) => { e.stopPropagation(); toast.success('Đã thêm vào danh sách yêu thích'); }}
-                      >
-                        <Heart className="w-4 h-4" />
-                      </button>
+                      {/* favorite removed */}
 
                       <img
                         src={resolveImageUrl(p.hinh_anh)}
@@ -310,16 +304,7 @@ export default function Home() {
                         {p.ten_san_pham}
                       </h2>
                       
-                      {/* Rating Stars */}
-                      <div className="flex items-center gap-1 mb-2.5">
-                        <div className="flex text-yellow-400">
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <Star className="w-3.5 h-3.5 fill-current text-yellow-400/50" />
-                        </div>
-                      </div>
+                      {/* ratings removed */}
 
                       <p className="text-gray-900 font-bold text-[16px] mb-4">{Number(p.gia_ban).toLocaleString()} ₫</p>
 
