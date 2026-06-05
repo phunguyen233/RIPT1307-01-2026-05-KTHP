@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import { ShoppingCart, Heart, Star } from "lucide-react";
 import { Product } from "../types/Product";
 import CartProduct from "../components/cartProduct";
 import productsAPI from "../api/productsAPI";
@@ -15,10 +16,12 @@ export default function Home() {
     "/assets/slide3.jpg",
   ];
 
+  const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1); // 1: next, -1: prev
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -239,43 +242,114 @@ export default function Home() {
             </div>
           ) : (
             products.slice(0,5).map((p) => (
-              <Link key={p.id} to={`/products/details/${p.id}`} className="bg-white rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col overflow-hidden hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all duration-300 transform hover:-translate-y-1">
-                {/* Image Section */}
-                <div className="relative aspect-[4/3] w-full bg-gray-50 overflow-hidden">
-                  {isNewProduct(p.created_at) && (
-                    <div className="absolute top-3 left-3 z-10 bg-[#16a34a] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm">
-                      Mới
-                    </div>
-                  )}
-                  <img 
-                    src={resolveImageUrl(p.hinh_anh)} 
-                    alt={p.ten_san_pham} 
-                    onError={(e:any)=>{
-                      e.currentTarget.style.display = 'none';
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 text-xs text-center">Không có ảnh</div>';
-                      }
-                    }} 
-                    className="w-full h-full object-cover" 
-                  />
-                </div>
+                <div key={p.id} className="p-2 w-full max-w-[240px] mx-auto">
+                  <div
+                    onMouseEnter={() => setHoveredId(p.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    className="bg-white rounded-2xl shadow-sm overflow-hidden transition border border-gray-200"
+                    style={{
+                      padding: 16,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      transform: hoveredId === p.id ? "translateY(-6px)" : "none",
+                      boxShadow: hoveredId === p.id ? "0px 10px 20px rgba(0,0,0,0.12)" : undefined,
+                      transition: "transform 150ms ease, box-shadow 250ms ease",
+                    }}
+                  >
+                    {/* Image (square 1:1) */}
+                    <div
+                      className="w-full mb-3 overflow-hidden rounded-xl cursor-pointer group"
+                      style={{ position: "relative", width: "100%", paddingTop: "100%", }}
+                      onClick={() => navigate(`/products/details/${p.id}`)}
+                    >
+                      {/* Badge "Mới" */}
+                      {isNewProduct(p.created_at) && (
+                        <div className="absolute top-3 left-3 z-10 bg-[#16a34a] text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm">
+                          Mới
+                        </div>
+                      )}
+                      
+                      {/* Heart Icon */}
+                      <button 
+                        className="absolute top-2 right-2 z-10 bg-white p-1.5 rounded-full shadow-sm text-gray-500 hover:text-red-500 hover:bg-gray-50 transition-colors focus:outline-none"
+                        onClick={(e) => { e.stopPropagation(); toast.success('Đã thêm vào danh sách yêu thích'); }}
+                      >
+                        <Heart className="w-4 h-4" />
+                      </button>
 
-                {/* Content Section */}
-                <div className="p-5 flex flex-col flex-1 text-left">
-                  <h2 className="text-[18px] font-bold text-gray-800 mb-2 truncate">{p.ten_san_pham}</h2>
-                  <p className="text-[13px] text-gray-500 line-clamp-2 leading-relaxed mb-5 flex-1">
-                    {p.mo_ta || "Sự kết hợp độc đáo giữa hương vị tinh tế và công thức đặc biệt."}
-                  </p>
-                  
-                  <div className="flex items-center justify-between mt-auto">
-                    <span className="text-[16px] lg:text-[17px] font-bold text-[#16a34a]">{Number(p.gia_ban).toLocaleString('vi-VN')}đ</span>
-                    <button className="px-3 lg:px-4 py-1.5 border border-[#16a34a] text-[#16a34a] bg-[#f0fdf4] hover:bg-[#16a34a] hover:text-white rounded-full text-[12px] lg:text-[13px] font-medium transition-colors">
-                      Xem chi tiết
-                    </button>
+                      <img
+                        src={resolveImageUrl(p.hinh_anh)}
+                        alt={p.ten_san_pham}
+                        onError={(e: any) => {
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 text-xs text-center border border-gray-200" style="position:absolute;top:0;left:0;right:0;bottom:0;border-radius:12px;">Không có ảnh</div>';
+                          }
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: '12px'
+                        }}
+                        className="transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </div>
+
+                    {/* Info under the image */}
+                    <div className="text-left px-1 flex-1 flex flex-col">
+                      <h2 
+                        className="font-bold text-[15px] mb-1.5 truncate text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
+                        onClick={() => navigate(`/products/details/${p.id}`)}
+                      >
+                        {p.ten_san_pham}
+                      </h2>
+                      
+                      {/* Rating Stars */}
+                      <div className="flex items-center gap-1 mb-2.5">
+                        <div className="flex text-yellow-400">
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <Star className="w-3.5 h-3.5 fill-current text-yellow-400/50" />
+                        </div>
+                      </div>
+
+                      <p className="text-gray-900 font-bold text-[16px] mb-4">{Number(p.gia_ban).toLocaleString()} ₫</p>
+
+                      {/* Buttons row */}
+                      <div className="mt-auto">
+                        {(!p.hien_thi) ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="w-full py-2.5 text-[13px] bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed select-none font-medium"
+                          >
+                            Hết hàng
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); handleAddToCart(p); }}
+                            className="w-full flex items-center justify-center gap-2 bg-[#127e36] hover:bg-green-700 text-white py-2.5 rounded-lg transition-colors duration-200 shadow-sm"
+                            title="Thêm vào giỏ"
+                          >
+                            <ShoppingCart className="w-4 h-4" />
+                            <span className="text-[14px] font-medium">
+                              Thêm vào giỏ
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </Link>
             ))
           )}
         </div>

@@ -102,15 +102,13 @@ export default function Products() {
   };
 
   const handleDeleteProduct = async (id: number) => {
-    if (window.confirm("Bạn chắc chắn muốn xóa sản phẩm này?")) {
-      try {
-        await productAPI.delete(id);
-        alert("Xóa sản phẩm thành công!");
-        fetchProducts();
-      } catch (error) {
-        console.error("Lỗi khi xóa sản phẩm:", error);
-        alert("Lỗi khi xóa sản phẩm!");
-      }
+    try {
+      await productAPI.delete(id);
+      message.success("Xóa sản phẩm thành công!");
+      fetchProducts();
+    } catch (error) {
+      console.error("Lỗi khi xóa sản phẩm:", error);
+      message.error("Lỗi khi xóa sản phẩm!");
     }
   };
 

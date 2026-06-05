@@ -84,6 +84,13 @@ const Categories: React.FC = () => {
 
   const columns = [
     {
+      title: "STT",
+      key: "stt",
+      render: (_: any, __: any, index: number) => (
+        <span style={{ color: '#6b7280', fontWeight: 500 }}>{index + 1}</span>
+      )
+    },
+    {
       title: "Danh mục",
       dataIndex: "name",
       key: "name",
