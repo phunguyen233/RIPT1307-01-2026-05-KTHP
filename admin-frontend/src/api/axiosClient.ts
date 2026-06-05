@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Ưu tiên dùng biến môi trường, nếu không có thì fallback sang URL deploy
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:4000/api";
+  process.env.REACT_APP_API_URL || "https://bepmam-backend.onrender.com/api";
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
