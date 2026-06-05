@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Row, Col, Card, Select, Table, Tag, Typography, Space, Progress, Avatar, Spin, Input } from 'antd';
 import { 
   ShoppingOutlined, 
@@ -11,6 +11,7 @@ import {
   BellOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 // API Imports
 import { ingredientAPI } from '../api/ingredientAPI'; 
@@ -20,7 +21,7 @@ import { orderAPI } from '../api/orderAPI';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-// Theme configuration for the dashboard
+// Theme configuration matching SaaS style
 const THEME = {
   primaryGreen: '#16a34a',
   lightGreenBg: '#f0fdf4',
@@ -32,7 +33,11 @@ const THEME = {
 };
 
 const Dashboard: React.FC = () => {
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isFetching, setIsFetching] = useState<boolean>(true);
+  
+  // ==========================================
+  // FIX LỖI Ở ĐÂY: KHAI BÁO BIẾN PHÂN QUYỀN
+  // ==========================================
   const currentUserRole = (() => {
     try {
       const raw = localStorage.getItem('user');
@@ -43,8 +48,18 @@ const Dashboard: React.FC = () => {
     }
   })();
   const isStaff = currentUserRole === 'staff';
+  // ==========================================
   
-  // State variables for dashboard metrics
+  // 1. STATE FOR FILTERS (Time & Search)
+  const [timeFilter, setTimeFilter] = useState<string>('all');
+  const [searchText, setSearchText] = useState<string>(''); 
+  
+  // 2. STATE FOR RAW DATA STORAGE (Fetch API only once)
+  const [rawOrders, setRawOrders] = useState<any[]>([]);
+  const [rawProducts, setRawProducts] = useState<any[]>([]);
+  const [rawIngredients, setRawIngredients] = useState<any[]>([]);
+
+  // States for UI rendering
   const [totalProducts, setTotalProducts] = useState<number>(0); 
   const [totalOrders, setTotalOrders] = useState<number>(0);     
   const [totalIngredients, setTotalIngredients] = useState<number>(0);
@@ -56,184 +71,176 @@ const Dashboard: React.FC = () => {
   const [realBestSellers, setRealBestSellers] = useState<any[]>([]);
   const [salesActivities, setSalesActivities] = useState<any[]>([]);
 
-  // State variables for SVG chart
+  // States for the SVG Chart
   const [chartData, setChartData] = useState<{day: string, value: number, x: number, y: number}[]>([]);
   const [chartMax, setChartMax] = useState<number>(1000000);
 
+  // PHASE 1: FETCH DATA FROM SERVER ON COMPONENT MOUNT
   useEffect(() => {
     const fetchAllDashboardData = async () => {
+      setIsFetching(true);
       try {
-        setLoading(true);
-        let fetchedProducts: any[] = [];
-        let fetchedOrders: any[] = [];
-
-        // 1. Fetch Ingredients Data (Inventory tracking)
-        try {
-          const resIng = await ingredientAPI.getAll();
-          if (Array.isArray(resIng)) {
-            setTotalIngredients(resIng.length);
-            // Count items with stock lower than threshold (250)
-            const lowStockItems = resIng.filter((item: any) => (item.stock_quantity || 0) < 250);
-            setLowStockCount(lowStockItems.length);
-          }
-        } catch (e) { console.error(e); }
-
-        // 2. Fetch Products Data
-        try {
-          const resProd = await productAPI.getAll();
-          if (Array.isArray(resProd)) {
-            fetchedProducts = resProd;
-            setTotalProducts(resProd.length);
-            // Calculate total catalog value
-            const sumValue = resProd.reduce((sum, p) => sum + (Number(p.price) || 0), 0);
-            setTotalProductValue(sumValue);
-          }
-        } catch (e) { console.error(e); }
-
-        // 3. Fetch Orders & Sales Logs
-        try {
-          const resOrder = await orderAPI.getAll();
-          if (Array.isArray(resOrder)) {
-            fetchedOrders = resOrder;
-            setTotalOrders(resOrder.length);
-
-            // Calculate total revenue from completed orders only
-            const doanhThu = resOrder.reduce((sum, order) => {
-              if (order.status === 'completed') return sum + (Number(order.total_price) || 0);
-              return sum;
-            }, 0);
-            setTotalRevenue(doanhThu);
-
-            // Sort orders by created date (newest first)
-            const sortedOrders = [...resOrder].sort((a, b) => 
-              new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
-            );
-
-            // Prepare latest 5 orders for the table
-            const top5Orders = sortedOrders.slice(0, 5).map((order) => {
-              let statusText = 'Đang xử lý'; let color = 'warning';
-              if (order.status === 'completed') { statusText = 'Đã hoàn thành'; color = 'success'; } 
-              else if (order.status === 'cancelled') { statusText = 'Đã hủy'; color = 'error'; }
-              
-              return {
-                key: order.id,
-                id: `#DH${order.id || order.order_code}`,
-                customer: order.customer_name || 'Khách vãng lai',
-                total: `${(Number(order.total_price) || 0).toLocaleString()} đ`,
-                status: statusText, color: color
-              };
-            });
-            setRealOrderData(top5Orders);
-
-            // Prepare latest activities log
-            const activities = sortedOrders.slice(0, 5).map(order => {
-              const customer = order.customer_name || 'Khách vãng lai';
-              const total = (Number(order.total_price) || 0).toLocaleString() + ' đ';
-              
-              let text = `Đơn mới: ${customer} vừa đặt hàng trị giá ${total}`;
-              if (order.status === 'completed') text = `Hoàn thành: Giao thành công đơn ${total} cho ${customer}`;
-              if (order.status === 'cancelled') text = `Đã hủy: ${customer} hủy đơn hàng ${total}`;
-              
-              let timeStr = 'Vừa xong';
-              if (order.created_at) {
-                  const d = new Date(order.created_at);
-                  timeStr = `${d.getHours()}h${d.getMinutes().toString().padStart(2, '0')} - ${d.getDate()}/${d.getMonth()+1}`;
-              }
-              return { text: text, time: timeStr };
-            });
-            setSalesActivities(activities);
-          }
-        } catch (e) { console.error(e); }
-
-        // 4. Calculate Best Selling Products based on completed orders
-        if (fetchedOrders.length > 0 && fetchedProducts.length > 0) {
-          const productSalesCount: Record<number, number> = {};
-          
-          fetchedOrders.forEach(order => {
-            const status = (order.status || '').toLowerCase();
-            if (status === 'completed' || status === 'đã hoàn thành' || status === 'hoàn thành') {
-              const items = order.order_items || order.items || [];
-              items.forEach((item: any) => {
-                const pId = item.product_id;
-                if (pId) productSalesCount[pId] = (productSalesCount[pId] || 0) + (item.quantity || 0);
-              });
-            }
-          });
-
-          // Map the sales count back to products and format with real image URL
-          const bestSellersData = fetchedProducts.map(product => {
-            const totalSold = productSalesCount[product.id] || 0;
-            return {
-              name: product.name,
-              sold: `${totalSold} món`,
-              soldCount: totalSold,
-              percent: Math.min((totalSold / 50) * 100, 100),
-              // Retrieve image_url from database, fallback to a placeholder if it doesn't exist
-              img: product.image_url || 'https://placehold.co/100x100?text=No+Img' 
-            };
-          }).filter(item => item.soldCount > 0).sort((a, b) => b.soldCount - a.soldCount).slice(0, 5);
-          setRealBestSellers(bestSellersData);
-        }
-
-        // 5. Generate 7-Days Revenue Chart Data
-        const last7Days = Array.from({length: 7}).map((_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - (6 - i));
-          return d.toISOString().split('T')[0];
-        });
-
-        const dailyRevenue: Record<string, number> = {};
-        last7Days.forEach(d => dailyRevenue[d] = 0);
-
-        // Aggregate revenue per day
-        fetchedOrders.forEach(order => {
-          if (order.status === 'completed' && order.created_at) {
-            const orderDate = new Date(order.created_at).toISOString().split('T')[0];
-            if (dailyRevenue[orderDate] !== undefined) {
-              dailyRevenue[orderDate] += (Number(order.total_price) || 0);
-            }
-          }
-        });
-
-        const maxRev = Math.max(...Object.values(dailyRevenue), 100000); 
-        setChartMax(maxRev);
-
-        // Chart coordinates calculation for SVG
-        const xCoords = [50, 170, 290, 410, 530, 650, 770];
-        const newChartData = last7Days.map((day, idx) => {
-          const val = dailyRevenue[day];
-          const y = 220 - (val / maxRev) * 200; 
-          const dateObj = new Date(day);
-          const dayStr = `${dateObj.getDate()}/${dateObj.getMonth()+1}`;
-          return { day: dayStr, value: val, x: xCoords[idx], y: y };
-        });
-        
-        setChartData(newChartData);
-
+        const [resIng, resProd, resOrder] = await Promise.all([
+          ingredientAPI.getAll().catch(() => []),
+          productAPI.getAll().catch(() => []),
+          orderAPI.getAll().catch(() => [])
+        ]);
+        setRawIngredients(Array.isArray(resIng) ? resIng : []);
+        setRawProducts(Array.isArray(resProd) ? resProd : []);
+        setRawOrders(Array.isArray(resOrder) ? resOrder : []);
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
-        setLoading(false);
+        setIsFetching(false);
       }
     };
-    
     fetchAllDashboardData();
   }, []);
 
-  // Helper function to generate a smooth curve (Cubic Bezier) for the SVG chart
+  // PHASE 2: PROCESS & FILTER DATA
+  useEffect(() => {
+    if (isFetching) return;
+
+    setTotalIngredients(rawIngredients.length);
+    setLowStockCount(rawIngredients.filter((item: any) => (item.stock_quantity || 0) < 250).length);
+
+    setTotalProducts(rawProducts.length);
+    setTotalProductValue(rawProducts.reduce((sum, p) => sum + (Number(p.price) || 0), 0));
+
+    const now = dayjs();
+    const filteredOrders = rawOrders.filter(order => {
+      if (timeFilter !== 'all' && order.created_at) {
+        const orderDate = dayjs(order.created_at);
+        if (timeFilter === 'today' && !orderDate.isSame(now, 'day')) return false;
+        if (timeFilter === 'this_week' && !orderDate.isSame(now, 'week')) return false;
+        if (timeFilter === 'this_month' && !orderDate.isSame(now, 'month')) return false;
+      }
+
+      if (searchText.trim() !== '') {
+        const query = searchText.toLowerCase();
+        const customerName = (order.customer_name || 'khách vãng lai').toLowerCase();
+        const orderIdStr = String(order.id || order.order_code || '').toLowerCase();
+        
+        if (!customerName.includes(query) && !orderIdStr.includes(query)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    setTotalOrders(filteredOrders.length);
+    setTotalRevenue(filteredOrders.reduce((sum, order) => {
+      if (order.status === 'completed') return sum + (Number(order.total_price) || 0);
+      return sum;
+    }, 0));
+
+    const sortedOrders = [...filteredOrders].sort((a, b) => 
+      new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
+    );
+
+    const top5Orders = sortedOrders.slice(0, 5).map((order) => {
+      let statusText = 'Đang xử lý'; let color = 'warning';
+      if (order.status === 'completed') { statusText = 'Đã hoàn thành'; color = 'success'; } 
+      else if (order.status === 'cancelled') { statusText = 'Đã hủy'; color = 'error'; }
+      
+      return {
+        key: order.id,
+        id: `#DH${order.id || order.order_code}`,
+        customer: order.customer_name || 'Khách vãng lai',
+        total: `${(Number(order.total_price) || 0).toLocaleString()} đ`,
+        status: statusText, color: color
+      };
+    });
+    setRealOrderData(top5Orders);
+
+    const activities = sortedOrders.slice(0, 5).map(order => {
+      const customer = order.customer_name || 'Khách vãng lai';
+      const total = (Number(order.total_price) || 0).toLocaleString() + ' đ';
+      
+      let text = `Đơn mới: ${customer} vừa đặt hàng trị giá ${total}`;
+      if (order.status === 'completed') text = `Hoàn thành: Giao thành công đơn ${total} cho ${customer}`;
+      if (order.status === 'cancelled') text = `Đã hủy: ${customer} hủy đơn hàng ${total}`;
+      
+      let timeStr = 'Vừa xong';
+      if (order.created_at) {
+          const d = new Date(order.created_at);
+          timeStr = `${d.getHours()}h${d.getMinutes().toString().padStart(2, '0')} - ${d.getDate()}/${d.getMonth()+1}`;
+      }
+      return { text: text, time: timeStr };
+    });
+    setSalesActivities(activities);
+
+    const productSalesCount: Record<number, number> = {};
+    filteredOrders.forEach(order => {
+      const status = (order.status || '').toLowerCase();
+      if (status === 'completed' || status === 'đã hoàn thành' || status === 'hoàn thành') {
+        const items = order.order_items || order.items || [];
+        items.forEach((item: any) => {
+          const pId = item.product_id;
+          if (pId) productSalesCount[pId] = (productSalesCount[pId] || 0) + (item.quantity || 0);
+        });
+      }
+    });
+
+    const bestSellersData = rawProducts.map(product => {
+      const totalSold = productSalesCount[product.id] || 0;
+      return {
+        name: product.name,
+        sold: `${totalSold} món`,
+        soldCount: totalSold,
+        percent: Math.min((totalSold / 50) * 100, 100),
+        img: product.image_url || 'https://placehold.co/100x100?text=No+Img' 
+      };
+    }).filter(item => item.soldCount > 0).sort((a, b) => b.soldCount - a.soldCount).slice(0, 5);
+    setRealBestSellers(bestSellersData);
+
+    const last7Days = Array.from({length: 7}).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d.toISOString().split('T')[0];
+    });
+
+    const dailyRevenue: Record<string, number> = {};
+    last7Days.forEach(d => dailyRevenue[d] = 0);
+
+    filteredOrders.forEach(order => {
+      if (order.status === 'completed' && order.created_at) {
+        const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+        if (dailyRevenue[orderDate] !== undefined) {
+          dailyRevenue[orderDate] += (Number(order.total_price) || 0);
+        }
+      }
+    });
+
+    const maxRev = Math.max(...Object.values(dailyRevenue), 100000); 
+    setChartMax(maxRev);
+
+    const xCoords = [50, 170, 290, 410, 530, 650, 770];
+    const newChartData = last7Days.map((day, idx) => {
+      const val = dailyRevenue[day];
+      const y = 220 - (val / maxRev) * 200; 
+      const dateObj = new Date(day);
+      const dayStr = `${dateObj.getDate()}/${dateObj.getMonth()+1}`;
+      return { day: dayStr, value: val, x: xCoords[idx], y: y };
+    });
+    
+    setChartData(newChartData);
+
+  }, [rawOrders, rawProducts, rawIngredients, timeFilter, searchText, isFetching]);
+
   const generateSmoothCurve = (data: {x: number, y: number}[]) => {
     if (data.length === 0) return '';
     let path = `M ${data[0].x} ${data[0].y}`;
     for (let i = 1; i < data.length; i++) {
       const prev = data[i - 1];
       const curr = data[i];
-      const cpX = (prev.x + curr.x) / 2; // Control point for smoothing
+      const cpX = (prev.x + curr.x) / 2;
       path += ` C ${cpX} ${prev.y}, ${cpX} ${curr.y}, ${curr.x} ${curr.y}`;
     }
     return path;
   };
 
-  // Table columns configuration for Latest Orders
   const orderColumns = [
     { title: 'Mã đơn hàng', dataIndex: 'id', key: 'id', render: (text: string) => <Text strong style={{ color: '#0f172a' }}>{text}</Text> },
     { title: 'Khách hàng', dataIndex: 'customer', key: 'customer' },
@@ -241,7 +248,7 @@ const Dashboard: React.FC = () => {
     { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (status: string, record: any) => (<Tag bordered={false} color={record.color} style={{ fontWeight: 500 }}>{status}</Tag>) },
   ];
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: THEME.bgPage }}><Spin size="large" tip="Đang đồng bộ dữ liệu..." /></div>;
+  if (isFetching) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: THEME.bgPage }}><Spin size="large" tip="Đang đồng bộ dữ liệu..." /></div>;
 
   return (
     <div style={{ padding: '0 24px 24px 24px', backgroundColor: THEME.bgPage, minHeight: '100vh' }}>
@@ -250,12 +257,32 @@ const Dashboard: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `1px solid ${THEME.borderLight}`, marginBottom: '24px' }}>
         <Title level={4} style={{ color: THEME.textDark, margin: 0, fontWeight: 600, fontSize: '18px' }}>Bảng điều khiển hệ thống</Title>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <Input placeholder="Tìm nhanh... Ctrl K" prefix={<SearchOutlined style={{ color: '#94a3b8' }} />} style={{ width: 220, borderRadius: '6px', backgroundColor: '#fff' }} size="small" />
+          
+          <Input 
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Tìm đơn hàng, khách... Ctrl K" 
+            prefix={<SearchOutlined style={{ color: '#94a3b8' }} />} 
+            style={{ width: 220, borderRadius: '6px', backgroundColor: '#fff' }} 
+            size="small" 
+          />
+          
           <div style={{ position: 'relative', cursor: 'pointer' }}>
             <BellOutlined style={{ fontSize: '18px', color: THEME.textDark }} />
             <span style={{ position: 'absolute', top: -4, right: -4, width: '14px', height: '14px', backgroundColor: '#ef4444', color: '#fff', fontSize: '9px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold' }}>{lowStockCount}</span>
           </div>
-          <Select defaultValue="30-days" style={{ width: 115 }} size="small"><Option value="30-days">📅 Toàn thời gian</Option></Select>
+          
+          <Select 
+            value={timeFilter} 
+            onChange={(val) => setTimeFilter(val)} 
+            style={{ width: 140 }} 
+            size="small"
+          >
+            <Option value="all">📅 Toàn thời gian</Option>
+            <Option value="today">📅 Hôm nay</Option>
+            <Option value="this_week">📅 Tuần này</Option>
+            <Option value="this_month">📅 Tháng này</Option>
+          </Select>
         </div>
       </div>
 
@@ -276,7 +303,7 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Space size={12}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: THEME.lightGreenBg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><ContainerOutlined style={{ fontSize: '18px', color: THEME.primaryGreen }} /></div>
-                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>Đơn hàng</div><div style={{ fontSize: '24px', fontWeight: '700', color: THEME.textDark }}>{totalOrders}</div></div>
+                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>Đơn hàng {timeFilter !== 'all' || searchText ? '(Đã lọc)' : ''}</div><div style={{ fontSize: '24px', fontWeight: '700', color: THEME.textDark }}>{totalOrders}</div></div>
               </Space>
             </div>
           </Card>
@@ -286,7 +313,14 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Space size={12}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: THEME.lightGreenBg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><DollarCircleOutlined style={{ fontSize: '18px', color: THEME.primaryGreen }} /></div>
-                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>{isStaff ? 'Đơn hàng đã xử lý' : 'Doanh thu thật'}</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? totalOrders : `${totalRevenue.toLocaleString()} đ`}</div></div>
+                <div>
+                  <div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>
+                    {isStaff ? 'Đơn hàng đã xử lý' : `Doanh thu ${timeFilter !== 'all' || searchText ? '(Đã lọc)' : ''}`}
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>
+                    {isStaff ? totalOrders : `${totalRevenue.toLocaleString()} đ`}
+                  </div>
+                </div>
               </Space>
             </div>
           </Card>
@@ -296,7 +330,14 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Space size={12}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: THEME.lightGreenBg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}><TagOutlined style={{ fontSize: '18px', color: THEME.primaryGreen }} /></div>
-                <div><div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>{isStaff ? 'Nguyên liệu cần nhập' : 'Tổng giá trị thực đơn'}</div><div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? lowStockCount : `${totalProductValue.toLocaleString()} đ`}</div></div>
+                <div>
+                  <div style={{ fontSize: '12px', color: THEME.textSecondary, marginBottom: '2px' }}>
+                    {isStaff ? 'Nguyên liệu cần nhập' : 'Tổng giá trị thực đơn'}
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: THEME.textDark }}>
+                    {isStaff ? lowStockCount : `${totalProductValue.toLocaleString()} đ`}
+                  </div>
+                </div>
               </Space>
             </div>
           </Card>
@@ -306,7 +347,7 @@ const Dashboard: React.FC = () => {
       {/* Main Content Area */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         
-        {/* Revenue SVG Chart */}
+        {/* CHỈ HIỆN BIỂU ĐỒ CHO CHỦ QUÁN */}
         {!isStaff && (
           <Col xs={24} xl={16}>
             <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<Space size={6}><span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>Doanh thu 7 ngày qua</span><InfoCircleOutlined style={{ color: '#cbd5e1', fontSize: '13px' }} /></Space>}>
@@ -324,10 +365,7 @@ const Dashboard: React.FC = () => {
                   <text x="35" y="174" fill="#94a3b8" fontSize="11" textAnchor="end">{((chartMax * 0.25) / 1000).toLocaleString()}k</text>
                   <text x="35" y="224" fill="#94a3b8" fontSize="11" textAnchor="end">0</text>
                   
-                  {/* Render the smooth gradient area */}
                   {chartData.length > 0 && <path d={`${generateSmoothCurve(chartData)} L 770 220 L 50 220 Z`} fill="url(#chartGradient)" />}
-                  
-                  {/* Render the smooth stroke line */}
                   {chartData.length > 0 && <path d={generateSmoothCurve(chartData)} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
                   
                   {chartData.map((d, i) => <circle key={`circle-${i}`} cx={d.x} cy={d.y} r="5" fill="#16a34a" stroke="#fff" strokeWidth="2" />)}
@@ -338,28 +376,30 @@ const Dashboard: React.FC = () => {
           </Col>
         )}
 
-        {/* Inventory Overview */}
-        <Col xs={24} xl={8}>
+        <Col xs={24} xl={isStaff ? 24 : 8}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle, height: '100%' }} title={<span style={{ fontSize: '15px', fontWeight: 600, color: THEME.textDark }}>{isStaff ? 'Tổng quan hoạt động' : 'Tổng quan dữ liệu kho'}</span>}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', gap: '22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Space size={12}>
                   <Avatar size="large" icon={<DollarCircleOutlined />} style={{ backgroundColor: THEME.lightGreenBg, color: THEME.primaryGreen }} />
-                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>{isStaff ? 'Tổng đơn hàng' : 'Tổng doanh thu thực'}</div><div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? totalOrders : `${totalRevenue.toLocaleString()} đ`}</div></div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: THEME.textSecondary }}>{isStaff ? 'Tổng đơn hàng' : 'Doanh thu (Theo bộ lọc)'}</div>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{isStaff ? totalOrders : `${totalRevenue.toLocaleString()} đ`}</div>
+                  </div>
                 </Space>
                 <Progress type="circle" percent={totalOrders > 0 ? 100 : 0} width={42} strokeColor={THEME.primaryGreen} strokeWidth={9} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderTop: `1px solid ${THEME.borderLight}`, borderBottom: `1px solid ${THEME.borderLight}` }}>
                 <Space size={12}>
                   <Avatar size="large" icon={<ShoppingOutlined />} style={{ backgroundColor: '#eff6ff', color: '#2563eb' }} />
-                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>Nguyên liệu đang quản lý</div><div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{totalIngredients} loại nguyên liệu</div></div>
+                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>Nguyên liệu đang quản lý</div><div style={{ fontSize: '15px', fontWeight: '700', color: THEME.textDark }}>{totalIngredients} loại</div></div>
                 </Space>
                 <Progress type="circle" percent={Math.min(totalIngredients * 10, 100)} width={42} strokeColor="#2563eb" strokeWidth={9} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Space size={12}>
                   <Avatar size="large" icon={<TagOutlined />} style={{ backgroundColor: '#fff7ed', color: '#ea580c' }} />
-                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>Nguyên liệu sắp hết hàng</div><div style={{ fontSize: '15px', fontWeight: '700', color: '#ef4444' }}>{lowStockCount} loại cần nhập kho</div></div>
+                  <div><div style={{ fontSize: '12px', color: THEME.textSecondary }}>Nguyên liệu sắp hết hàng</div><div style={{ fontSize: '15px', fontWeight: '700', color: '#ef4444' }}>{lowStockCount} loại cần nhập</div></div>
                 </Space>
                 <Progress type="circle" percent={totalIngredients > 0 ? Math.round((lowStockCount / totalIngredients) * 100) : 0} width={42} strokeColor="#ef4444" strokeWidth={9} />
               </div>
@@ -372,8 +412,8 @@ const Dashboard: React.FC = () => {
         
         {/* Latest Orders Table */}
         <Col xs={24} lg={10}>
-          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<span style={{ fontSize: '14px', fontWeight: 600 }}>Đơn hàng mới nhất</span>}>
-            <Table columns={orderColumns} dataSource={realOrderData} pagination={false} size="small" style={{ borderRadius: '8px', overflow: 'hidden' }} locale={{ emptyText: "Chưa có đơn hàng nào" }} />
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<span style={{ fontSize: '14px', fontWeight: 600 }}>Đơn hàng {timeFilter !== 'all' || searchText ? 'mới nhất (Đã lọc)' : 'mới nhất'}</span>}>
+            <Table columns={orderColumns} dataSource={realOrderData} pagination={false} size="small" style={{ borderRadius: '8px', overflow: 'hidden' }} locale={{ emptyText: "Không có đơn hàng nào khớp với tìm kiếm" }} />
           </Card>
         </Col>
 
@@ -381,10 +421,9 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={7}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<span style={{ fontSize: '14px', fontWeight: 600 }}>Sản phẩm bán chạy</span>}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {realBestSellers.length === 0 ? <div style={{ textAlign: 'center', color: THEME.textSecondary, padding: '20px 0' }}>Chưa ghi nhận số liệu bán lẻ</div> : 
+              {realBestSellers.length === 0 ? <div style={{ textAlign: 'center', color: THEME.textSecondary, padding: '20px 0' }}>Chưa ghi nhận số liệu</div> : 
                 realBestSellers.map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {/* Render actual product image */}
                     <img 
                       src={item.img} 
                       alt={item.name} 
@@ -403,7 +442,7 @@ const Dashboard: React.FC = () => {
         <Col xs={24} sm={12} lg={7}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: THEME.shadowSubtle }} title={<span style={{ fontSize: '14px', fontWeight: 600 }}>Hoạt động buôn bán</span>}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0' }}>
-              {salesActivities.length === 0 ? <div style={{ textAlign: 'center', color: THEME.textSecondary, padding: '20px 0' }}>Chưa có hoạt động giao dịch</div> : 
+              {salesActivities.length === 0 ? <div style={{ textAlign: 'center', color: THEME.textSecondary, padding: '20px 0' }}>Không có hoạt động nào khớp tìm kiếm</div> : 
                 salesActivities.map((act, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                     <div style={{ marginTop: '7px', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: THEME.primaryGreen, boxShadow: '0 0 0 2px #d1fae5', flexShrink: 0 }} />
