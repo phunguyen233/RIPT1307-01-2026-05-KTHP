@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const ordersController = require('./orders');
 const db = require('../config/db');
+const { getIo } = require('../utils/socket');
 require('dotenv').config();
 
 const SEPAY_SECRET = process.env.SEPAY_SECRET;
@@ -245,6 +246,10 @@ exports.createSepayOrder = async (req, res, next) => {
       }
 
       await client.query('COMMIT');
+      const io = getIo();
+      if (io) {
+        io.emit('new-order', { ...newOrder, order_items: insertedItems });
+      }
 
       const sepayData = generateSepayQr();
       const qrUrl = `${sepayData.qrUrl}&amount=${encodeURIComponent(amount)}&info=${encodeURIComponent(order_code)}&des=${encodeURIComponent(order_code)}&addInfo=${encodeURIComponent(order_code)}`;

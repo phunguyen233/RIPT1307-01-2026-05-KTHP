@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { getIo } = require('../utils/socket');
 
 const getCustomerIdForUser = async (userId, shop_id) => {
   const result = await db.query(
@@ -170,6 +171,10 @@ exports.createOrder = async (req, res, next) => {
     }
 
     await client.query('COMMIT');
+    const io = getIo();
+    if (io) {
+      io.emit('new-order', { ...newOrder, order_items: insertedItems });
+    }
     res.status(201).json({ ...newOrder, order_items: insertedItems });
   } catch (error) {
     await client.query('ROLLBACK');

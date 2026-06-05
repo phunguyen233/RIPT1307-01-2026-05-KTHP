@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Row, Col, Card, Select, Table, Tag, Typography, Space, Progress, Avatar, Spin, Input } from 'antd';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { Row, Col, Card, Select, Table, Tag, Typography, Space, Progress, Avatar, Spin, Input, Badge, Modal, notification } from 'antd';
 import { 
   ShoppingOutlined, 
   ContainerOutlined, 
@@ -11,6 +11,7 @@ import {
   BellOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
+import { io, Socket } from 'socket.io-client';
 import dayjs from 'dayjs';
 
 // API Imports
@@ -20,6 +21,16 @@ import { orderAPI } from '../api/orderAPI';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+type NotificationItem = {
+  id: string | number;
+  title: string;
+  description: string;
+  time: string;
+  orderCode?: string;
+};
+
+const apiHost = (process.env.REACT_APP_API_URL || 'https://bepmam-backend.onrender.com').replace(/\/api\/?$/, '');
 
 // Theme configuration matching SaaS style
 const THEME = {
@@ -58,6 +69,79 @@ const Dashboard: React.FC = () => {
   const [rawOrders, setRawOrders] = useState<any[]>([]);
   const [rawProducts, setRawProducts] = useState<any[]>([]);
   const [rawIngredients, setRawIngredients] = useState<any[]>([]);
+
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [socketConnected, setSocketConnected] = useState<boolean>(false);
+  const socketRef = useRef<Socket | null>(null);
+
+  const addNotification = (data: any) => {
+    const orderId = data?.id || data?.order?.id || data?.order_code || 'chưa rõ';
+    const newNotification: NotificationItem = {
+      id: `${Date.now()}-${orderId}`,
+      title: 'Đơn hàng mới',
+      description: `Mã đơn ${orderId} vừa được tạo.`,
+      time: dayjs().format('HH:mm DD/MM/YYYY'),
+      orderCode: `#${data?.order_code || orderId}`,
+    };
+
+    setNotifications((prev) => [newNotification, ...prev].slice(0, 10));
+    setUnreadCount((prev) => prev + 1);
+    notification.success({
+      message: 'Đơn hàng mới',
+      description: `Mã đơn ${orderId}`,
+    });
+
+    if ('speechSynthesis' in window) {
+      const speech = new SpeechSynthesisUtterance(`Bạn có đơn hàng mới mã số ${orderId}`);
+      speech.lang = 'vi-VN';
+      window.speechSynthesis.speak(speech);
+    }
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Đơn hàng mới', { body: `Mã đơn ${orderId} vừa được tạo.` });
+    } else if ('Notification' in window && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  };
+
+  useEffect(() => {
+    const socket = io(apiHost, {
+      transports: ['websocket'],
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => setSocketConnected(true));
+    socket.on('disconnect', () => setSocketConnected(false));
+    socket.on('new-order', addNotification);
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('new-order');
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isFetching || rawOrders.length === 0) return;
+
+    const initialData = [...rawOrders]
+      .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
+      .slice(0, 5)
+      .map((order) => ({
+        id: order.id || `${order.order_code}-${Math.random()}`,
+        title: 'Đơn hàng gần đây',
+        description: `Đơn ${order.order_code || `#${order.id}`} từ ${order.customer_name || 'khách lẻ'}`,
+        time: order.created_at ? dayjs(order.created_at).format('HH:mm DD/MM/YYYY') : dayjs().format('HH:mm DD/MM/YYYY'),
+        orderCode: `#${order.order_code || order.id}`,
+      }));
+
+    setNotifications(initialData);
+    // keep unreadCount only for new incoming websocket notifications
+  }, [rawOrders, isFetching]);
 
   // States for UI rendering
   const [totalProducts, setTotalProducts] = useState<number>(0); 
@@ -267,9 +351,10 @@ const Dashboard: React.FC = () => {
             size="small" 
           />
           
-          <div style={{ position: 'relative', cursor: 'pointer' }}>
-            <BellOutlined style={{ fontSize: '18px', color: THEME.textDark }} />
-            <span style={{ position: 'absolute', top: -4, right: -4, width: '14px', height: '14px', backgroundColor: '#ef4444', color: '#fff', fontSize: '9px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold' }}>{lowStockCount}</span>
+          <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => { setModalVisible(true); setUnreadCount(0); }}>
+            <Badge count={unreadCount} size="small" style={{ backgroundColor: '#ff4d4f' }}>
+              <BellOutlined style={{ fontSize: '18px', color: THEME.textDark }} />
+            </Badge>
           </div>
           
           <Select 
@@ -454,6 +539,35 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      <Modal
+        title="Thông báo đơn hàng"
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+        width={560}
+      >
+        {notifications.length === 0 ? (
+          <div style={{ textAlign: 'center', color: THEME.textSecondary, padding: '24px 0' }}>
+            Chưa có thông báo đơn hàng mới.
+          </div>
+        ) : (
+          notifications.map((notificationItem) => (
+            <div key={notificationItem.id} style={{ padding: '14px 0', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <div>
+                  <Text strong style={{ display: 'block', fontSize: '14px', color: THEME.textDark }}>{notificationItem.title}</Text>
+                  <div style={{ marginTop: '6px', color: THEME.textSecondary, fontSize: '13px' }}>{notificationItem.description}</div>
+                </div>
+                <Text type="secondary" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>{notificationItem.time}</Text>
+              </div>
+              {notificationItem.orderCode && (
+                <div style={{ marginTop: '10px', fontSize: '13px', color: '#0f172a' }}>{notificationItem.orderCode}</div>
+              )}
+            </div>
+          ))
+        )}
+      </Modal>
 
       {/* Footer Connection Status */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', backgroundColor: THEME.lightGreenBg, borderRadius: '10px', marginTop: '24px', boxShadow: '0 2px 8px rgba(22, 163, 74, 0.04)' }}>
