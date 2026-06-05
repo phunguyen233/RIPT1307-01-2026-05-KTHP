@@ -34,17 +34,30 @@ const LoginPage: React.FC = () => {
       width: '100%',
       display: 'flex',
       boxSizing: 'border-box',
-      backgroundColor: '#f9fafb',
-      overflow: 'hidden'
+      backgroundColor: '#f8fafc',
+      overflow: 'hidden',
+      position: 'relative'
     }}>
-      {/* Left Side - Green Panel */}
+      {/* Seamless Unified Background & Transition Effect */}
+      <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '65%', pointerEvents: 'none', zIndex: 0 }}>
+        {/* Soft, wide gradient fading into the right side's white/light gray */}
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, background: 'linear-gradient(to right, #16a34a 0%, rgba(22,163,74,0.9) 60%, transparent 100%)' }}></div>
+        
+        {/* Subtle Network Pattern */}
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, opacity: 0.08, backgroundImage: 'radial-gradient(circle, #fff 1.5px, transparent 1.5px)', backgroundSize: '40px 40px', maskImage: 'linear-gradient(to right, black 30%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 100%)' }}></div>
+        
+        <CrownOutlined style={{ position: 'absolute', bottom: '-80px', left: '40px', fontSize: '360px', opacity: 0.08, transform: 'rotate(-10deg)', color: '#fff' }} />
+      </div>
+
+      {/* Left Side - Content */}
       <div style={{
-        flex: '0 0 58%', // Tăng diện tích mảng xanh lên 58%
-        backgroundColor: '#16a34a',
+        flex: '0 0 58%',
+        background: 'transparent',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        zIndex: 10
       }}>
         {/* Decorative background shapes */}
         <div style={{ position: 'absolute', top: '-15%', right: '-5%', width: '400px', height: '400px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }}></div>
@@ -139,8 +152,8 @@ const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Side - White Background */}
-      <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      {/* Right Side - Content */}
+      <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', zIndex: 10 }}>
         
         {/* Main Content Area */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

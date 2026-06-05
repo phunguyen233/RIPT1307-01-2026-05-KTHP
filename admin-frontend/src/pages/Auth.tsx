@@ -156,8 +156,8 @@ const Auth: React.FC = () => {
         </div>
 
         {/* Right Column Content - Login Form Card */}
-        <div className="w-full lg:w-[55%] xl:w-[60%] flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
-          <div className="bg-white w-full max-w-[460px] rounded-[24px] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-gray-100/80 p-10 relative">
+        <div className="w-full lg:w-[55%] xl:w-[60%] flex p-6 lg:p-12 overflow-y-auto">
+          <div className="m-auto bg-white w-full max-w-[460px] rounded-[24px] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border border-gray-100/80 p-10 relative shrink-0">
             
             {/* Form Header */}
             <div className="text-center mb-8">
@@ -237,7 +237,7 @@ const Auth: React.FC = () => {
             {mode === "register" && (
               <Spin spinning={registerLoading}>
                 <Form form={registerForm} layout="vertical" onFinish={handleRegister} requiredMark={false} className="register-form">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col">
                     <Form.Item
                       label={<span className="text-[#0f172a] font-medium text-[13px] ml-1">Họ tên</span>}
                       name="name"
@@ -257,7 +257,7 @@ const Auth: React.FC = () => {
                     </Form.Item>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col">
                     <Form.Item
                       label={<span className="text-[#0f172a] font-medium text-[13px] ml-1">Tên cửa hàng</span>}
                       name="shopName"
@@ -277,7 +277,7 @@ const Auth: React.FC = () => {
                     </Form.Item>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col">
                     <Form.Item
                       label={<span className="text-[#0f172a] font-medium text-[13px] ml-1">Mật khẩu</span>}
                       name="password"

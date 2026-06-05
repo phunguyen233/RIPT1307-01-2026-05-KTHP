@@ -241,10 +241,10 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#fafaf9] p-4 sm:p-6 overflow-y-auto">
+    <div className="min-h-screen w-full flex flex-col bg-[#fafaf9] p-4 sm:p-6 overflow-y-auto">
       
       {/* Centered Auth Form */}
-      <div className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-3xl w-full max-w-[480px] p-6 sm:p-7 border border-slate-100 shrink-0">
+      <div className="m-auto bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-3xl w-full max-w-[480px] p-6 sm:p-7 border border-slate-100 shrink-0">
           
           <h1 className="text-3xl font-extrabold text-slate-900 mb-1">{tab === "login" ? "Chào mừng trở lại!" : "Tạo tài khoản mới"}</h1>
           <p className="text-slate-500 mb-6 text-sm">{tab === "login" ? "Vui lòng nhập thông tin đăng nhập bên dưới" : "Vui lòng điền thông tin để đăng ký"}</p>
@@ -316,7 +316,7 @@ export default function Auth() {
             </form>
           ) : (
             <form onSubmit={handleRegister} className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-4">
                 <div className="relative mt-2">
                   <label className="absolute -top-2.5 left-3 bg-white px-1 text-[13px] font-semibold text-slate-700">Họ tên</label>
                   <input
