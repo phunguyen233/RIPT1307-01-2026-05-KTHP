@@ -57,7 +57,36 @@ exports.getProductById = async (req, res, next) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    res.json(result.rows[0]);
+    
+    const product = result.rows[0];
+
+    // Fetch ingredients from recipe
+    try {
+      const ingredientsQuery = `
+        SELECT i.name AS ingredient_name, ri.quantity, u.symbol AS unit_symbol
+        FROM recipes r
+        JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+        JOIN ingredients i ON ri.ingredient_id = i.id
+        LEFT JOIN units u ON ri.unit_id = u.id
+        WHERE r.product_id = $1 AND p.shop_id = $2
+      `;
+      // We don't need p.shop_id since we already check product.id. Let's use standard query:
+      const safeIngredientsQuery = `
+        SELECT i.name AS ingredient_name, ri.quantity, u.symbol AS unit_symbol
+        FROM recipes r
+        JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+        JOIN ingredients i ON ri.ingredient_id = i.id
+        LEFT JOIN units u ON ri.unit_id = u.id
+        WHERE r.product_id = $1
+      `;
+      const ingredientsResult = await db.query(safeIngredientsQuery, [id]);
+      product.ingredients = ingredientsResult.rows;
+    } catch (err) {
+      console.error("Error fetching product ingredients:", err);
+      product.ingredients = [];
+    }
+
+    res.json(product);
   } catch (error) {
     next(error);
   }

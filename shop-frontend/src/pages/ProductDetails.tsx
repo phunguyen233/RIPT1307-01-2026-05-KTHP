@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import shopApiClient from '../api/shopApiClient';
 import Breadcrumbs from '../components/Breadcrumbs';
-import { ShoppingCart, Minus, Plus } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Coffee, LayoutGrid, Leaf, Clock, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 interface Product {
@@ -13,6 +13,7 @@ interface Product {
   description: string;
   category_id: number;
   category_name?: string;
+  ingredients?: { ingredient_name: string; quantity: number; unit_symbol: string }[];
 }
 
 const ProductDetails = () => {
@@ -119,10 +120,10 @@ const ProductDetails = () => {
             <Breadcrumbs currentName={product?.name || undefined} />
 
             {/* Product Top Section */}
-            <div className="flex flex-col md:flex-row gap-12 lg:gap-20 mb-20">
+            <div className="flex flex-col md:flex-row gap-10 lg:gap-16 mb-10 items-start justify-center max-w-5xl mx-auto">
               {/* Product Image */}
-              <div className="w-full md:w-5/12 lg:w-1/3 flex-shrink-0 mx-auto md:mx-0">
-                <div className="aspect-[4/5] md:aspect-square w-full max-w-xs mx-auto overflow-hidden bg-secondary/30 rounded-xl relative">
+              <div className="w-full md:w-5/12 lg:w-1/3 flex-shrink-0 mx-auto">
+                <div className="aspect-[4/5] md:aspect-square w-full overflow-hidden bg-secondary/30 rounded-2xl relative shadow-sm">
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
@@ -145,7 +146,7 @@ const ProductDetails = () => {
               </div>
 
               {/* Product Info */}
-              <div className="flex-grow flex flex-col items-start text-left pt-4">
+              <div className="w-full md:w-7/12 lg:w-2/3 flex flex-col items-start text-left pt-2 lg:pt-4">
                 <h1 className="text-xl lg:text-2xl font-semibold text-text uppercase tracking-wider mb-4 w-full text-left">
                   {product.name}
                 </h1>
@@ -189,29 +190,52 @@ const ProductDetails = () => {
                 </div>
 
                 {/* Details Table */}
-                <div className="text-sm w-full">
-                  <div className="flex py-3 border-b border-secondary/50">
-                    <span className="w-40 shrink-0 font-bold text-text/80">Tên sản phẩm:</span>
+                <div className="text-sm w-full mt-4">
+                  <div className="flex items-center py-3 border-b border-secondary/50">
+                    <div className="w-44 shrink-0 flex items-center gap-1.5 font-bold text-text/80">
+                      <Coffee className="w-4 h-4 text-text/60" />
+                      Tên sản phẩm:
+                    </div>
                     <span className="text-text/70">{product.name}</span>
                   </div>
-                  <div className="flex py-3 border-b border-secondary/50">
-                    <span className="w-40 shrink-0 font-bold text-text/80">Quy cách:</span>
-                    <span className="text-text/70">Chưa có thông tin</span>
+                  <div className="flex items-center py-3 border-b border-secondary/50">
+                    <div className="w-44 shrink-0 flex items-center gap-1.5 font-bold text-text/80">
+                      <LayoutGrid className="w-4 h-4 text-text/60" />
+                      Danh mục:
+                    </div>
+                    <span className="text-text/70 capitalize">{product.category_name || 'Đang cập nhật'}</span>
                   </div>
-                  <div className="flex py-3 border-b border-secondary/50">
-                    <span className="w-40 shrink-0 font-bold text-text/80">Thành phần:</span>
-                    <span className="text-text/70">Chưa có thông tin</span>
+                  <div className="flex items-center py-3 border-b border-secondary/50">
+                    <div className="w-44 shrink-0 flex items-center gap-1.5 font-bold text-text/80">
+                      <Leaf className="w-4 h-4 text-text/60" />
+                      Thành phần:
+                    </div>
+                    <span className="text-text/70">
+                      {product.ingredients && product.ingredients.length > 0 
+                        ? product.ingredients.map(i => i.ingredient_name).join(', ')
+                        : 'Đang cập nhật'}
+                    </span>
                   </div>
-                  <div className="flex py-3">
-                    <span className="w-40 shrink-0 font-bold text-text/80">Hạn sử dụng:</span>
-                    <span className="text-text/70">Chưa có thông tin</span>
+                  <div className="flex items-center py-3 border-b border-secondary/50">
+                    <div className="w-44 shrink-0 flex items-center gap-1.5 font-bold text-text/80">
+                      <Clock className="w-4 h-4 text-text/60" />
+                      Thời gian chuẩn bị:
+                    </div>
+                    <span className="text-text/70">5 - 10 phút</span>
+                  </div>
+                  <div className="flex items-start py-3">
+                    <div className="w-44 shrink-0 flex items-center gap-1.5 font-bold text-text/80">
+                      <ShieldCheck className="w-4 h-4 text-text/60" />
+                      Bảo quản:
+                    </div>
+                    <span className="text-text/70 pt-[2px]">Dùng ngon nhất trong vòng 24 giờ. Vui lòng bảo quản lạnh.</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Bottom Tabs Section */}
-            <div className="border-t border-secondary pt-10 mb-16">
+            <div className="border-t border-secondary pt-6 mb-16">
               <div className="flex justify-center gap-8 md:gap-16 border-b border-secondary pb-4 mb-8">
                 <button 
                   onClick={() => setActiveTab('description')}
@@ -219,15 +243,6 @@ const ProductDetails = () => {
                 >
                   Mô tả
                   {activeTab === 'description' && (
-                    <span className="absolute -bottom-[17px] left-0 right-0 h-[2px] bg-danger"></span>
-                  )}
-                </button>
-                <button 
-                  onClick={() => setActiveTab('details')}
-                  className={`text-base font-bold transition-colors relative ${activeTab === 'details' ? 'text-text' : 'text-text/50 hover:text-text'}`}
-                >
-                  Thông tin chi tiết
-                  {activeTab === 'details' && (
                     <span className="absolute -bottom-[17px] left-0 right-0 h-[2px] bg-danger"></span>
                   )}
                 </button>
@@ -247,11 +262,6 @@ const ProductDetails = () => {
                 {activeTab === 'description' && (
                   <div className="animate-fade-in text-text/80 leading-relaxed text-justify whitespace-pre-wrap">
                     {product.description || "Chưa có mô tả cho sản phẩm này."}
-                  </div>
-                )}
-                {activeTab === 'details' && (
-                  <div className="animate-fade-in text-text/80 text-center py-10">
-                    Chưa có thông tin chi tiết.
                   </div>
                 )}
                 {activeTab === 'reviews' && (
