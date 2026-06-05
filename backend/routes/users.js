@@ -7,6 +7,8 @@ const { verifyToken, verifyAdminToken } = require('../middleware/authMiddleware'
 router.post('/register/admin', usersController.registerAdmin);
 router.post('/register', usersController.register);
 router.post('/login', usersController.login);
+router.post('/login/google', usersController.googleLoginWithIdToken);
+router.post('/login/google/code', usersController.googleLoginWithCode);
 
 // Protected routes (cần xác thực token)
 router.get('/current-shop', verifyToken, usersController.getCurrentShopApiKey);

@@ -2,9 +2,15 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { generateApiKey } = require('../utils/apiKeyGenerator');
+const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'postmessage';
+const oauth2Client = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
 
 // Hàm validate email
 const validateEmail = (email) => {
@@ -16,6 +22,77 @@ const getShopIdFromApiKey = async (apiKey) => {
   if (!apiKey) return null;
   const result = await db.query('SELECT id FROM shops WHERE api_key = $1', [apiKey]);
   return result.rows.length > 0 ? result.rows[0].id : null;
+};
+
+const buildJwtToken = (user) => {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      shop_id: user.shop_id,
+    },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+};
+
+const createCustomerAccount = async ({ email, name, shopId }) => {
+  const userName = name || email.split('@')[0];
+  const randomPassword = crypto.randomBytes(16).toString('hex');
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+  const userResult = await db.query(
+    'INSERT INTO users (name, email, password, role, shop_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, shop_id, created_at',
+    [userName, email, hashedPassword, 'customer', shopId]
+  );
+  const user = userResult.rows[0];
+
+  const codeResult = await db.query(
+    `SELECT COALESCE(MAX(CAST(SUBSTRING(customer_code FROM 3) AS INTEGER)), 0) + 1 AS next_number
+                       FROM customers WHERE shop_id = $1 AND customer_code LIKE 'KH%'`,
+    [shopId]
+  );
+  const nextNumber = codeResult.rows[0].next_number;
+  const customer_code = 'KH' + nextNumber.toString();
+
+  await db.query(
+    'INSERT INTO customers (user_id, name, phone, address, total_spent, shop_id, customer_code) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    [user.id, userName, null, null, 0, shopId, customer_code]
+  );
+
+  return user;
+};
+
+const findOrCreateCustomerByEmail = async ({ email, name, shopId }) => {
+  const result = await db.query(
+    'SELECT id, name, email, role, shop_id, created_at FROM users WHERE email = $1 AND shop_id = $2',
+    [email, shopId]
+  );
+
+  if (result.rows.length > 0) {
+    const existingUser = result.rows[0];
+    if (existingUser.role !== 'customer') {
+      throw { status: 403, message: 'Tài khoản này không thể đăng nhập bằng Google tại đây' };
+    }
+    return existingUser;
+  }
+
+  return await createCustomerAccount({ email, name, shopId });
+};
+
+const verifyGoogleIdToken = async (idToken) => {
+  if (!GOOGLE_CLIENT_ID) {
+    throw { status: 500, message: 'Google client id chưa được cấu hình' };
+  }
+
+  const ticket = await oauth2Client.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID });
+  const payload = ticket.getPayload();
+  if (!payload?.email) {
+    throw { status: 400, message: 'Không thể xác thực email Google' };
+  }
+  return payload;
 };
 
 // ĐĂNG KÝ ADMIN (chỉ cho admin-frontend)
@@ -256,6 +333,77 @@ exports.login = async (req, res, next) => {
       token
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+exports.googleLoginWithIdToken = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+    const apiKeyHeader = req.headers['x-api-key'] || req.headers['X-API-Key'];
+    if (!idToken) {
+      return res.status(400).json({ message: 'idToken là bắt buộc' });
+    }
+    if (!apiKeyHeader) {
+      return res.status(400).json({ message: 'X-API-Key là bắt buộc' });
+    }
+
+    const shopId = await getShopIdFromApiKey(apiKeyHeader);
+    if (!shopId) {
+      return res.status(401).json({ message: 'X-API-Key không hợp lệ' });
+    }
+
+    const payload = await verifyGoogleIdToken(idToken);
+    const user = await findOrCreateCustomerByEmail({ email: payload.email, name: payload.name || payload.email.split('@')[0], shopId });
+    const token = buildJwtToken(user);
+
+    res.json({ message: 'Đăng nhập Google thành công', token, user });
+  } catch (error) {
+    if (error?.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
+    next(error);
+  }
+};
+
+exports.googleLoginWithCode = async (req, res, next) => {
+  try {
+    const { code } = req.body;
+    const apiKeyHeader = req.headers['x-api-key'] || req.headers['X-API-Key'];
+    if (!code) {
+      return res.status(400).json({ message: 'Code là bắt buộc' });
+    }
+    if (!apiKeyHeader) {
+      return res.status(400).json({ message: 'X-API-Key là bắt buộc' });
+    }
+
+    const shopId = await getShopIdFromApiKey(apiKeyHeader);
+    if (!shopId) {
+      return res.status(401).json({ message: 'X-API-Key không hợp lệ' });
+    }
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      return res.status(500).json({ message: 'Google OAuth client id/secret chưa được cấu hình' });
+    }
+
+    const tokenResponse = await oauth2Client.getToken({
+      code,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+    });
+    const idToken = tokenResponse.tokens.id_token;
+    if (!idToken) {
+      return res.status(500).json({ message: 'Không nhận được id_token từ Google' });
+    }
+
+    const payload = await verifyGoogleIdToken(idToken);
+    const user = await findOrCreateCustomerByEmail({ email: payload.email, name: payload.name || payload.email.split('@')[0], shopId });
+    const token = buildJwtToken(user);
+
+    res.json({ message: 'Đăng nhập Google thành công', token, user });
+  } catch (error) {
+    if (error?.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     next(error);
   }
 };

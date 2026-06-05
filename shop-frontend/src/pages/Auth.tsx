@@ -147,7 +147,7 @@ export default function Auth() {
                 try {
                   const idToken = resp?.credential;
                   if (!idToken) return;
-                  const res = await shopApiClient.post("/auth/google", { idToken });
+                  const res = await shopApiClient.post("/users/login/google", { idToken });
                   if (res.data?.token) {
                     localStorage.setItem("token", res.data.token);
                     if (res.data.user) localStorage.setItem("user", JSON.stringify(res.data.user));
@@ -172,7 +172,7 @@ export default function Auth() {
                   try {
                     const code = resp?.code;
                     if (!code) return;
-                    const res = await shopApiClient.post("/auth/google/code", { code });
+                    const res = await shopApiClient.post("/users/login/google/code", { code });
                     if (res.data?.token) {
                       localStorage.setItem("token", res.data.token);
                       if (res.data.user) localStorage.setItem("user", JSON.stringify(res.data.user));
@@ -272,10 +272,6 @@ export default function Auth() {
                   className="w-full rounded-2xl border border-slate-800 px-4 py-3 text-sm focus:border-green-600 focus:ring-1 focus:ring-green-600 focus:outline-none transition-colors bg-transparent"
                 />
                 {loginFieldErrors.password && <p className="text-red-600 text-xs mt-1 font-medium px-4">{loginFieldErrors.password}</p>}
-              </div>
-
-              <div className="flex justify-end">
-                <a href="#" className="text-xs font-bold text-slate-700 hover:text-green-700 transition-colors">Quên mật khẩu?</a>
               </div>
 
               {loginError && <p className="text-red-600 text-sm font-medium text-center">{loginError}</p>}

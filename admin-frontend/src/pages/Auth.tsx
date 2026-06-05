@@ -212,13 +212,10 @@ const Auth: React.FC = () => {
                     />
                   </Form.Item>
 
-                  <div className="flex justify-between items-center mb-8 px-1">
+                  <div className="flex items-center mb-8 px-1">
                     <Form.Item name="remember" valuePropName="checked" noStyle>
                       <Checkbox className="text-gray-500 text-[13px] font-medium">Nhớ thiết bị này</Checkbox>
                     </Form.Item>
-                    <a className="text-[#16a34a] hover:text-[#15803d] text-[13px] font-semibold transition-colors duration-300" href="#">
-                      Quên mật khẩu?
-                    </a>
                   </div>
 
                   <Form.Item className="mb-0">
