@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Typography, Space, Button } from 'antd';
-import { ShopOutlined, PlusOutlined } from '@ant-design/icons';
+import { Card, Table, Typography } from 'antd';
 import { getShopsStats, ShopStats } from '../api/adminAPI';
 
 const { Title, Text } = Typography;

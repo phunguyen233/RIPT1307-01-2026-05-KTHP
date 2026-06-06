@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Typography, Tag, Button } from 'antd';
-import { UserAddOutlined } from '@ant-design/icons';
+import { Card, Table, Typography, Tag } from 'antd';
 import { getAdminUsers, AdminUserStats } from '../api/adminAPI';
 
 const { Title, Text } = Typography;
