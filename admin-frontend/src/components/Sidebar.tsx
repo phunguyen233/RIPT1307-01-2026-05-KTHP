@@ -1,12 +1,11 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Menu, type MenuProps } from "antd";
 import { HomeOutlined, ShoppingOutlined, AppstoreOutlined, UserOutlined, ShoppingCartOutlined, InboxOutlined, BookOutlined, StarOutlined, KeyOutlined, ShopOutlined, FileExcelOutlined } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Sidebar() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { sidebarCollapsed, setToken } = useAuth();
+  const { sidebarCollapsed } = useAuth();
 
   const currentUserRole = (() => {
     try {

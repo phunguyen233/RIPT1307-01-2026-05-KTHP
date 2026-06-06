@@ -319,26 +319,6 @@ const Orders = () => {
         setShowAddModal(true);
     };
 
-    const addProductLine = (productId: number) => {
-        const p = products.find((x) => x.ma_san_pham === productId || x.id === productId);
-        if (!p) return;
-        const existing = orderItems.find((it) => it.ma_san_pham === (p.ma_san_pham || p.id));
-        if (existing) {
-            setOrderItems(orderItems.map(it => it.ma_san_pham === existing.ma_san_pham ? { ...it, so_luong: it.so_luong + 1 } : it));
-        } else {
-            setOrderItems([...orderItems, { ma_san_pham: p.ma_san_pham || p.id, ten_san_pham: p.ten_san_pham || p.ten_san_pham || p.ten_san_pham, so_luong: 1, don_gia: Number(p.gia_ban || p.gia || p.price || 0) }]);
-        }
-    };
-
-    const removeProductLine = (ma_san_pham: number) => {
-        setOrderItems(orderItems.filter(it => it.ma_san_pham !== ma_san_pham));
-    };
-
-    const setQtyFor = (ma_san_pham: number, qty: number) => {
-        if (qty <= 0) return removeProductLine(ma_san_pham);
-        setOrderItems(orderItems.map(it => it.ma_san_pham === ma_san_pham ? { ...it, so_luong: qty } : it));
-    };
-
     const handleAddOrderSubmit = async (values: any) => {
         if (orderItems.length === 0) {
             message.error("Vui lòng thêm ít nhất một sản phẩm");
@@ -380,8 +360,6 @@ const Orders = () => {
             message.error(errorMsg);
         }
     };
-
-    const computeTotal = () => orderItems.reduce((s, it) => s + (it.so_luong || 0) * (it.don_gia || 0), 0);
 
     const handleViewDetail = async (orderOrId: Order | number) => {
         const id = typeof orderOrId === 'number' ? orderOrId : orderOrId.id || 0;

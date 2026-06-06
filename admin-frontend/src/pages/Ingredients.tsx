@@ -27,8 +27,8 @@ const Ingredients: React.FC = () => {
 
   // Import history modal
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [historyIngredient, setHistoryIngredient] = useState<Ingredient | null>(null);
-  const [importHistory, setImportHistory] = useState<InventoryImport[]>([]);
+  const [historyIngredient] = useState<Ingredient | null>(null);
+  const [importHistory] = useState<InventoryImport[]>([]);
   
   const [filterStatus, setFilterStatus] = useState<'all' | 'low' | 'out'>('all');
 
@@ -323,15 +323,22 @@ const Ingredients: React.FC = () => {
   };
 
   // Convert stock to base unit (g/ml/unit) for threshold check
-  const getStockInBaseUnit = (ingredient: Ingredient) => {
-    if (!ingredient.stock_quantity || !ingredient.unit_id) return 0;
-    const ingredientUnit = getUnitById(ingredient.unit_id);
-    if (!ingredientUnit) return ingredient.stock_quantity || 0;
-    const factor = getFactorToBase(ingredientUnit);
-    return ingredient.stock_quantity * factor;
-  };
-
   const { lowStockCount, outOfStockCount, totalValue, finalIngredients } = useMemo(() => {
+    const getStockInBaseUnit = (ingredient: Ingredient) => {
+      if (!ingredient.stock_quantity || !ingredient.unit_id) return 0;
+      const ingredientUnit = units.find(u => u.id === ingredient.unit_id);
+      if (!ingredientUnit) return ingredient.stock_quantity || 0;
+
+      const getFactorToBaseMemo = (unit?: Unit): number => {
+        if (!unit || !unit.base_unit_id) return 1;
+        const parentUnit = units.find(u => u.id === unit.base_unit_id);
+        return (unit.conversion_factor || 1) * getFactorToBaseMemo(parentUnit);
+      };
+
+      const factor = getFactorToBaseMemo(ingredientUnit);
+      return ingredient.stock_quantity * factor;
+    };
+
     let lowCount = 0;
     let outCount = 0;
     let value = 0;
@@ -351,7 +358,7 @@ const Ingredients: React.FC = () => {
     });
 
     return { lowStockCount: lowCount, outOfStockCount: outCount, totalValue: value, finalIngredients: filtered };
-  }, [filteredIngredients, filterStatus, getStockInBaseUnit]);
+  }, [filteredIngredients, filterStatus, units]);
 
   return (
     <div style={{ backgroundColor: '#fff', minHeight: '100vh', padding: 32, borderRadius: 16 }}>

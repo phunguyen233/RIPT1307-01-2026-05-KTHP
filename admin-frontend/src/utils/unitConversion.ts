@@ -42,7 +42,8 @@ export function convertBetweenUnits(
   let fromToBaseFactor = 1;
   let current = fromUnit;
   while (current.base_unit_id) {
-    const baseUnit = allUnits.find(u => u.id === current.base_unit_id);
+    const currentBaseId = current.base_unit_id;
+    const baseUnit = allUnits.find(u => u.id === currentBaseId);
     if (baseUnit) {
       fromToBaseFactor *= (current.conversion_factor || 1);
       current = baseUnit;
@@ -55,7 +56,8 @@ export function convertBetweenUnits(
   let baseToToFactor = 1;
   let currentTo = toUnit;
   while (currentTo.base_unit_id) {
-    const baseUnit = allUnits.find(u => u.id === currentTo.base_unit_id);
+    const currentToBaseId = currentTo.base_unit_id;
+    const baseUnit = allUnits.find(u => u.id === currentToBaseId);
     if (baseUnit) {
       baseToToFactor *= (currentTo.conversion_factor || 1);
       currentTo = baseUnit;

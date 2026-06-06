@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, Select, Upload, Switch, Space, message } from "antd";
+import { Table, Button, Modal, Form, Input, Select, Upload, Switch, message } from "antd";
 import { UploadOutlined, EditOutlined, DeleteOutlined, PlusOutlined, AppstoreOutlined, ShoppingOutlined, InboxOutlined, SearchOutlined } from "@ant-design/icons";
 import { productAPI } from "../api/productAPI";
 import { categoryAPI, Category } from "../api/categoryAPI";
@@ -12,7 +12,7 @@ export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string | number>("all");
+  const [filterCategory] = useState<string | number>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -58,10 +58,6 @@ export default function Products() {
     } finally {
       setCategoriesLoading(false);
     }
-  };
-
-  const handleReloadPage = async () => {
-    await Promise.all([fetchProducts(), fetchCategories()]);
   };
 
   useEffect(() => {

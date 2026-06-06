@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, Card, Table, Modal, Form, Input, Space, message, Popconfirm, Typography } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserAddOutlined } from '@ant-design/icons';
 import { staffAPI } from '../api/staffAPI';
@@ -12,16 +12,6 @@ const Staffs: React.FC = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [form] = Form.useForm();
   const [showPasswords, setShowPasswords] = useState<Set<number>>(new Set());
-
-  const currentUser = useMemo(() => {
-    try {
-      const raw = localStorage.getItem('user');
-      return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-      console.error('Staffs currentUser parse error', error);
-      return null;
-    }
-  }, []);
 
   const fetchStaffs = async () => {
     try {

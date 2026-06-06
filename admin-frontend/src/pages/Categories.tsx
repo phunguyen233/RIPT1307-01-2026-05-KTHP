@@ -128,8 +128,6 @@ const Categories: React.FC = () => {
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const activeCount = categories.filter(c => c.is_active !== false).length;
-
   return (
     <div style={{ backgroundColor: '#fff', minHeight: '100vh', padding: 32, borderRadius: 16 }}>
       <style>{`
