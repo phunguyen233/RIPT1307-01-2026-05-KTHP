@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, Select, Upload, Switch, Space, Image, message } from "antd";
-import { UploadOutlined, EditOutlined, DeleteOutlined, PlusOutlined, ReloadOutlined, EyeOutlined, FilterOutlined, AppstoreOutlined, ShoppingOutlined, InboxOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined } from "@ant-design/icons";
+import { Table, Button, Modal, Form, Input, Select, Upload, Switch, Space, message } from "antd";
+import { UploadOutlined, EditOutlined, DeleteOutlined, PlusOutlined, AppstoreOutlined, ShoppingOutlined, InboxOutlined, SearchOutlined } from "@ant-design/icons";
 import { productAPI } from "../api/productAPI";
 import { categoryAPI, Category } from "../api/categoryAPI";
 import { Product } from "../types/Product";
-import axiosClient from "../api/axiosClient";
 
 const { Option } = Select;
 
@@ -29,11 +28,9 @@ export default function Products() {
   });
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const [productFieldErrors, setProductFieldErrors] = useState<{ name?: string; price?: string; }>({});
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
-  const [categoriesError, setCategoriesError] = useState("");
   const [form] = Form.useForm();
 
   // Lấy danh sách sản phẩm
@@ -54,12 +51,10 @@ export default function Products() {
   const fetchCategories = async () => {
     try {
       setCategoriesLoading(true);
-      setCategoriesError("");
       const data = await categoryAPI.getAll();
       setCategories(data);
     } catch (error) {
       console.error("Lỗi khi lấy phân loại:", error);
-      setCategoriesError("Không thể tải danh mục");
     } finally {
       setCategoriesLoading(false);
     }
@@ -110,40 +105,6 @@ export default function Products() {
       console.error("Lỗi khi xóa sản phẩm:", error);
       message.error("Lỗi khi xóa sản phẩm!");
     }
-  };
-
-  const handleToggleProductVisibility = async (id: number) => {
-    try {
-      const product = products.find(p => p.id === id);
-      if (product) {
-        await productAPI.update(id, { ...product, is_active: !product.is_active });
-        fetchProducts();
-      }
-    } catch (err) {
-      console.error('Lỗi khi đổi trạng thái sản phẩm', err);
-      alert('Lỗi khi đổi trạng thái sản phẩm');
-    }
-  };
-
-  const handleProductInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: (name === "price" || name === "cost_price") ? parseFloat(value) || 0 : value,
-    });
-  };
-
-  const handleProductTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleProductSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value ? parseInt(value) : undefined,
-    });
   };
 
   const handleProductSubmit = async (values: any) => {

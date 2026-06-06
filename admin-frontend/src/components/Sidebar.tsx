@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, type MenuProps } from "antd";
-import { HomeOutlined, ShoppingOutlined, AppstoreOutlined, UserOutlined, ShoppingCartOutlined, InboxOutlined, BookOutlined, StarOutlined, LogoutOutlined, KeyOutlined, ShopOutlined, FileExcelOutlined } from "@ant-design/icons";
+import { HomeOutlined, ShoppingOutlined, AppstoreOutlined, UserOutlined, ShoppingCartOutlined, InboxOutlined, BookOutlined, StarOutlined, KeyOutlined, ShopOutlined, FileExcelOutlined } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Sidebar() {
@@ -17,11 +17,6 @@ export default function Sidebar() {
       return '';
     }
   })();
-
-  const handleLogout = () => {
-    try { setToken(null); localStorage.removeItem("user"); } catch { }
-    navigate('/auth');
-  };
 
   const menuItems: MenuProps['items'] = [
     {

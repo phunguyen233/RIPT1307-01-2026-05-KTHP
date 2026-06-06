@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Form, Input, Select, InputNumber, message, Space } from "antd";
+import { Table, Button, Input, Select, InputNumber, Space } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 import { Ingredient } from "../types";
 import { ingredientAPI } from "../api/ingredientAPI";
@@ -14,8 +14,8 @@ const InventoryImport: React.FC = () => {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [formData, setFormData] = useState({
     ingredient_id: 0,
@@ -44,28 +44,27 @@ const InventoryImport: React.FC = () => {
       setUnits(unitsData || []);
     } catch (err) {
       console.error("Error fetching data:", err);
-      setError("Lỗi khi tải dữ liệu");
+      setErrorMessage("Lỗi khi tải dữ liệu");
     }
   };
 
   const handleImportStock = async () => {
-    setError("");
+    setErrorMessage("");
 
     if (!formData.ingredient_id) {
-      setError("Vui lòng chọn nguyên liệu");
-      return;
-    }
-    if (!formData.quantity || Number(formData.quantity) <= 0) {
-      setError("Số lượng phải lớn hơn 0");
-      return;
-    }
-    if (!formData.unit_id) {
-      setError("Vui lòng chọn đơn vị");
-      return;
-    }
-    if (!formData.import_price || Number(formData.import_price) < 0) {
-      setError("Giá nhập không hợp lệ");
-      return;
+        setErrorMessage("Vui lòng chọn nguyên liệu");
+        return;
+      }
+      if (!formData.quantity || Number(formData.quantity) <= 0) {
+        setErrorMessage("Số lượng phải lớn hơn 0");
+        return;
+      }
+      if (!formData.unit_id) {
+        setErrorMessage("Vui lòng chọn đơn vị");
+        return;
+      }
+      if (!formData.import_price || Number(formData.import_price) < 0) {
+        setErrorMessage("Giá nhập không hợp lệ");
     }
 
     try {
@@ -79,13 +78,13 @@ const InventoryImport: React.FC = () => {
       const updatedIngredients = await ingredientAPI.getAll();
       const updatedIngredient = updatedIngredients.find(ing => ing.id === formData.ingredient_id);
 
-      setSuccess(`Nhập kho thành công! Tồn kho mới: ${updatedIngredient?.stock_quantity || 0}, Giá TB mới: ${updatedIngredient?.avg_price?.toLocaleString() || 0}đ`);
+      setSuccessMessage(`Nhập kho thành công! Tồn kho mới: ${updatedIngredient?.stock_quantity || 0}, Giá TB mới: ${updatedIngredient?.avg_price?.toLocaleString() || 0}đ`);
       setFormData({ ingredient_id: 0, quantity: "", unit_id: 0, import_price: "" });
       setShowModal(false);
       await fetchData();
-      setTimeout(() => setSuccess(""), 5000);
+      setTimeout(() => setSuccessMessage(""), 5000);
     } catch (err: any) {
-      setError(err?.response?.data?.error || "Lỗi khi nhập kho");
+      setErrorMessage(err?.response?.data?.error || "Lỗi khi nhập kho");
     } finally {
       setLoading(false);
     }
@@ -160,15 +159,15 @@ const InventoryImport: React.FC = () => {
         </Space>
       </div>
 
-      {success && (
+      {successMessage && (
         <div style={{ backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', color: '#52c41a', padding: 12, borderRadius: 6, marginBottom: 16 }}>
-          {success}
+          {successMessage}
         </div>
       )}
 
-      {error && (
+      {errorMessage && (
         <div style={{ backgroundColor: '#fff2f0', border: '1px solid #ffccc7', color: '#ff4d4f', padding: 12, borderRadius: 6, marginBottom: 16 }}>
-          {error}
+          {errorMessage}
         </div>
       )}
 

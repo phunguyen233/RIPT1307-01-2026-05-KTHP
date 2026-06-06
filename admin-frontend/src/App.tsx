@@ -29,7 +29,7 @@ function InnerApp() {
     } catch {
       return null;
     }
-  }, [token]);
+  }, []);
 
   const isStaff = currentUser?.role === 'staff';
 

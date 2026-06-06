@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Card, Row, Col, Typography, Button, Modal, DatePicker, Radio, Checkbox, Select, InputNumber, Space, message, Form } from 'antd';
 import { FileExcelOutlined, BarChartOutlined, ShoppingCartOutlined, ShopOutlined, UserOutlined, DatabaseOutlined, AppstoreOutlined, PartitionOutlined } from '@ant-design/icons';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import { saveAs } from 'file-saver';
 import ExcelJS from 'exceljs';
 import reportAPI from '../api/reportAPI';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 

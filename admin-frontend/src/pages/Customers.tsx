@@ -121,12 +121,6 @@ const Customers: React.FC = () => {
     }
   };
 
-  // Xử lý thay đổi input
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
   // Lọc khách hàng theo tìm kiếm (tên hoặc mã hoặc số điện thoại)
   const filteredCustomers = customers.filter((c) => {
     const q = (searchTerm || "").trim().toLowerCase();
@@ -193,18 +187,6 @@ const Customers: React.FC = () => {
       ),
     },
   ];
-
-  const fetchOrdersForCustomer = async (id: number) => {
-    try {
-      // Orders functionality moved to Orders page
-    } catch (err) {
-      console.error('Lỗi khi lấy đơn hàng của khách hàng', err);
-    }
-  };
-
-  const handleSelectCustomer = (id: number) => {
-    // Select customer functionality simplified
-  };
 
   return (
     <div>

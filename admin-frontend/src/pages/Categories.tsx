@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Space, message, Switch } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, AppstoreOutlined, DropboxOutlined, SearchOutlined, ShoppingOutlined, CheckCircleOutlined, MinusCircleOutlined } from "@ant-design/icons";
+import { Table, Button, Modal, Form, Input, message } from "antd";
+import { EditOutlined, DeleteOutlined, PlusOutlined, AppstoreOutlined, SearchOutlined, ShoppingOutlined } from "@ant-design/icons";
 import { categoryAPI, Category } from "../api/categoryAPI";
 
 const Categories: React.FC = () => {
@@ -10,7 +10,6 @@ const Categories: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -23,21 +22,19 @@ const Categories: React.FC = () => {
       setInitialLoading(true);
       const data = await categoryAPI.getAll();
       setCategories(data || []);
-      setError("");
     } catch (err) {
       console.error("Error fetching categories:", err);
-      setError("Lỗi khi tải danh mục");
+      message.error("Lỗi khi tải danh mục");
     } finally {
       setInitialLoading(false);
     }
   };
 
   const handleAddCategory = async (values: any) => {
-    setError("");
     const name = values.name || formData.name;
     const description = values.description || formData.description;
     if (!name.trim()) {
-      setError("Tên danh mục không được trống");
+      message.error("Tên danh mục không được trống");
       return;
     }
 
@@ -56,7 +53,6 @@ const Categories: React.FC = () => {
       setCurrentId(null);
       await fetchCategories();
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi khi lưu danh mục");
       message.error(err?.response?.data?.message || "Lỗi khi lưu danh mục");
     } finally {
       setLoading(false);
@@ -68,7 +64,6 @@ const Categories: React.FC = () => {
     setFormData({ name: category.name, description: category.description || "" });
     setIsEditMode(true);
     setShowModal(true);
-    setError("");
   };
 
   const handleDeleteCategory = async (id: number) => {
@@ -134,7 +129,6 @@ const Categories: React.FC = () => {
   );
 
   const activeCount = categories.filter(c => c.is_active !== false).length;
-  const hiddenCount = categories.length - activeCount;
 
   return (
     <div style={{ backgroundColor: '#fff', minHeight: '100vh', padding: 32, borderRadius: 16 }}>
@@ -183,7 +177,6 @@ const Categories: React.FC = () => {
                setFormData({ name: "", description: "" });
                setIsEditMode(false);
                setCurrentId(null);
-               setError("");
                setShowModal(true);
              }}
              style={{ backgroundColor: '#16a34a', borderColor: '#16a34a', height: 44, borderRadius: 8, padding: '0 24px', fontWeight: 600 }}

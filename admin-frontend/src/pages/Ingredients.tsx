@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Table, Button, Modal, Form, Input, Select, Space, message, InputNumber, Row, Col } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, HistoryOutlined, ReloadOutlined, AppstoreOutlined, CarryOutOutlined, InboxOutlined, DollarCircleOutlined, FilterOutlined, SearchOutlined, EyeOutlined } from "@ant-design/icons";
+import { Table, Button, Modal, Form, Input, Select, message, InputNumber, Row, Col } from "antd";
+import { EditOutlined, DeleteOutlined, PlusOutlined, AppstoreOutlined, CarryOutOutlined, InboxOutlined, DollarCircleOutlined, SearchOutlined } from "@ant-design/icons";
 import { ingredientAPI, Ingredient } from "../api/ingredientAPI";
 import { unitAPI, Unit } from "../api/unitAPI";
 import { receiptAPI, InventoryImport } from "../api/receiptAPI";
@@ -13,20 +13,16 @@ const Ingredients: React.FC = () => {
   // Add ingredient modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({ name: "", unit_id: 0, stock_quantity: null as number | null, avg_price: null as number | null, warning_threshold: null as number | null, note: "" });
-  const [addError, setAddError] = useState("");
   const [addLoading, setAddLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
 
   // Edit ingredient modal
   const [showEditModal, setShowEditModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState({ name: "", unit_id: 0, stock_quantity: null as number | null, avg_price: null as number | null, warning_threshold: null as number | null, note: "" });
-  const [editError, setEditError] = useState("");
 
   // Import stock modal
   const [showImportModal, setShowImportModal] = useState(false);
   const [importData, setImportData] = useState({ ingredient_id: 0, quantity: null as number | null, unit_id: 0, import_price: null as number | null });
-  const [importError, setImportError] = useState("");
   const [importLoading, setImportLoading] = useState(false);
 
   // Import history modal
@@ -52,14 +48,6 @@ const Ingredients: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
-
-  const handleReloadPage = async () => {
-    await fetchData();
-  };
-
-  const getUnitSymbol = (unitId: number) => {
-    return units.find(u => u.id === unitId)?.symbol || "";
-  };
 
   const fmtQty = (v: any) => {
     const num = Number(v || 0);
@@ -154,7 +142,6 @@ const Ingredients: React.FC = () => {
 
   // Add ingredient
   const handleAddIngredient = async (values: any) => {
-    setAddError("");
     
     const name = values.name || formData.name;
     const unit_id = values.unit_id || formData.unit_id;
@@ -164,11 +151,11 @@ const Ingredients: React.FC = () => {
     const note = values.note || formData.note;
     
     if (!name.trim()) {
-      setAddError("Tên nguyên liệu không được trống");
+      message.error("Tên nguyên liệu không được trống");
       return;
     }
     if (!unit_id) {
-      setAddError("Vui lòng chọn đơn vị");
+      message.error("Vui lòng chọn đơn vị");
       return;
     }
 
@@ -187,7 +174,6 @@ const Ingredients: React.FC = () => {
       setShowAddModal(false);
       await fetchData();
     } catch (err: any) {
-      setAddError(err?.response?.data?.message || "Lỗi khi thêm nguyên liệu");
       message.error(err?.response?.data?.message || "Lỗi khi thêm nguyên liệu");
     } finally {
       setAddLoading(false);
@@ -209,7 +195,6 @@ const Ingredients: React.FC = () => {
   };
 
   const handleEditIngredientSubmit = async (values: any) => {
-    setEditError("");
     
     const name = values.name || editFormData.name;
     const unit_id = values.unit_id || editFormData.unit_id;
@@ -219,11 +204,11 @@ const Ingredients: React.FC = () => {
     const note = values.note || editFormData.note;
     
     if (!name.trim()) {
-      setEditError("Tên nguyên liệu không được trống");
+      message.error("Tên nguyên liệu không được trống");
       return;
     }
     if (!unit_id) {
-      setEditError("Vui lòng chọn đơn vị");
+      message.error("Vui lòng chọn đơn vị");
       return;
     }
 
@@ -242,7 +227,6 @@ const Ingredients: React.FC = () => {
         await fetchData();
       }
     } catch (error: any) {
-      setEditError(error?.response?.data?.error || "Lỗi khi cập nhật nguyên liệu");
       message.error(error?.response?.data?.error || "Lỗi khi cập nhật nguyên liệu");
     }
   };
@@ -258,30 +242,18 @@ const Ingredients: React.FC = () => {
     }
   };
 
-  // Import stock
-  const openImportModal = (ingredient: Ingredient) => {
-    setImportData({
-      ingredient_id: ingredient.id,
-      quantity: null,
-      unit_id: ingredient.unit_id,
-      import_price: null
-    });
-    setShowImportModal(true);
-  };
-
   const handleImportStock = async () => {
-    setImportError("");
     
     if (!importData.quantity || Number(importData.quantity) <= 0) {
-      setImportError("Số lượng phải lớn hơn 0");
+      message.error("Số lượng phải lớn hơn 0");
       return;
     }
     if (!importData.unit_id) {
-      setImportError("Vui lòng chọn đơn vị");
+      message.error("Vui lòng chọn đơn vị");
       return;
     }
     if (!importData.import_price || Number(importData.import_price) < 0) {
-      setImportError("Giá nhập không hợp lệ");
+      message.error("Giá nhập không hợp lệ");
       return;
     }
 
@@ -289,7 +261,7 @@ const Ingredients: React.FC = () => {
       setImportLoading(true);
       const convertedQuantity = getConvertedImportQuantity();
       if (convertedQuantity === null || Number.isNaN(convertedQuantity)) {
-        setImportError("Không thể quy đổi đơn vị nhập kho với đơn vị hiện tại của nguyên liệu");
+        message.error("Không thể quy đổi đơn vị nhập kho với đơn vị hiện tại của nguyên liệu");
         return;
       }
       await receiptAPI.add(importData.ingredient_id, {
@@ -297,28 +269,13 @@ const Ingredients: React.FC = () => {
         unit_id: importData.unit_id,
         import_price: Number(importData.import_price)
       });
-      setSuccessMsg("Nhập kho thành công!");
       setShowImportModal(false);
       setImportData({ ingredient_id: 0, quantity: null, unit_id: 0, import_price: null });
       await fetchData();
-      setTimeout(() => setSuccessMsg(""), 3000);
     } catch (error: any) {
-      setImportError(error?.response?.data?.error || "Lỗi khi nhập kho");
+      message.error(error?.response?.data?.error || "Lỗi khi nhập kho");
     } finally {
       setImportLoading(false);
-    }
-  };
-
-  // View import history
-  const openHistoryModal = async (ingredient: Ingredient) => {
-    try {
-      const history = await receiptAPI.getAll();
-      const filtered = history.filter(h => h.ingredient_id === ingredient.id);
-      setHistoryIngredient(ingredient);
-      setImportHistory(filtered);
-      setShowHistoryModal(true);
-    } catch (error) {
-      console.error("Lỗi khi tải lịch sử:", error);
     }
   };
 
@@ -394,7 +351,7 @@ const Ingredients: React.FC = () => {
     });
 
     return { lowStockCount: lowCount, outOfStockCount: outCount, totalValue: value, finalIngredients: filtered };
-  }, [filteredIngredients, filterStatus]);
+  }, [filteredIngredients, filterStatus, getStockInBaseUnit]);
 
   return (
     <div style={{ backgroundColor: '#fff', minHeight: '100vh', padding: 32, borderRadius: 16 }}>

@@ -16,17 +16,12 @@ const Staffs: React.FC = () => {
   const currentUser = useMemo(() => {
     try {
       const raw = localStorage.getItem('user');
-      const parsed = raw ? JSON.parse(raw) : null;
-      console.log('Staffs currentUser', parsed);
-      return parsed;
+      return raw ? JSON.parse(raw) : null;
     } catch (error) {
       console.error('Staffs currentUser parse error', error);
       return null;
     }
   }, []);
-
-  const shopId = currentUser?.shop_id;
-  console.log('Staffs shopId', shopId);
 
   const fetchStaffs = async () => {
     try {
@@ -90,13 +85,6 @@ const Staffs: React.FC = () => {
     setShowPasswords(newSet);
   };
 
-  const handleEditStaff = (staff: any) => {
-    // Removed edit functionality
-  };
-
-  const handleUpdateStaff = async (values: any) => {
-    // Removed edit functionality
-  };
 
   const columns = [
     {

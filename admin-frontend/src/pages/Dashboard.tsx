@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Row, Col, Card, Select, Table, Tag, Typography, Space, Progress, Avatar, Spin, Input, Badge, Modal, notification } from 'antd';
 import { 
   ShoppingOutlined, 
@@ -73,7 +73,6 @@ const Dashboard: React.FC = () => {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [socketConnected, setSocketConnected] = useState<boolean>(false);
   const socketRef = useRef<Socket | null>(null);
 
   const addNotification = (data: any) => {
@@ -117,13 +116,9 @@ const Dashboard: React.FC = () => {
     });
     socketRef.current = socket;
 
-    socket.on('connect', () => setSocketConnected(true));
-    socket.on('disconnect', () => setSocketConnected(false));
     socket.on('new-order', addNotification);
 
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
       socket.off('new-order');
       socket.disconnect();
       socketRef.current = null;

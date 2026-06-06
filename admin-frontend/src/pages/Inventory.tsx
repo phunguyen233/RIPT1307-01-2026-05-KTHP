@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Select, Space, message, InputNumber } from "antd";
+import { Table, Button, Modal, Form, Select, Space, message, InputNumber } from "antd";
 import { PlusOutlined, DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
 import { Ingredient } from "../types";
 import { ingredientAPI } from "../api/ingredientAPI";
@@ -10,11 +10,9 @@ const Inventory: React.FC = () => {
   const [imports, setImports] = useState<any[]>([]);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
-  const [search, setSearch] = useState("");
+  const search = "";
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const [formData, setFormData] = useState({
     ingredient_id: 0,
@@ -105,32 +103,29 @@ const Inventory: React.FC = () => {
       setUnits(unitsData || []);
     } catch (err) {
       console.error("Error fetching data:", err);
-      setError("Lỗi khi tải dữ liệu");
     }
   };
 
   const handleImportStock = async (values: any) => {
-    setError("");
-
     const ingredient_id = values.ingredient_id || formData.ingredient_id;
     const quantity = values.quantity || formData.quantity;
     const unit_id = values.unit_id || formData.unit_id;
     const import_price = values.import_price || formData.import_price;
 
     if (!ingredient_id) {
-      setError("Vui lòng chọn nguyên liệu");
+      message.error("Vui lòng chọn nguyên liệu");
       return;
     }
     if (!quantity || Number(quantity) <= 0) {
-      setError("Số lượng phải lớn hơn 0");
+      message.error("Số lượng phải lớn hơn 0");
       return;
     }
     if (!unit_id) {
-      setError("Vui lòng chọn đơn vị");
+      message.error("Vui lòng chọn đơn vị");
       return;
     }
     if (!import_price || Number(import_price) < 0) {
-      setError("Giá nhập không hợp lệ");
+      message.error("Giá nhập không hợp lệ");
       return;
     }
 
@@ -147,7 +142,6 @@ const Inventory: React.FC = () => {
       setShowModal(false);
       await fetchData();
     } catch (err: any) {
-      setError(err?.response?.data?.error || "Lỗi khi nhập kho");
       message.error(err?.response?.data?.error || "Lỗi khi nhập kho");
     } finally {
       setLoading(false);
@@ -168,17 +162,6 @@ const Inventory: React.FC = () => {
     (i.ingredient_name || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const getUnitSymbol = (id: number) => {
-    return units.find(u => u.id === id)?.symbol || "";
-  };
-
-  const formatCurrency = (value: number) => {
-    return Number(value).toLocaleString("vi-VN");
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
-  };
 
   return (
     <div>
@@ -193,7 +176,6 @@ const Inventory: React.FC = () => {
             icon={<PlusOutlined />}
             onClick={() => {
               setFormData({ ingredient_id: 0, quantity: "", unit_id: 0, import_price: "" });
-              setError("");
               setShowModal(true);
             }}
           >
@@ -270,12 +252,6 @@ const Inventory: React.FC = () => {
               style={{ width: '100%' }}
             />
           </Form.Item>
-
-          {error && (
-            <div style={{ color: 'red', marginBottom: 16 }}>
-              {error}
-            </div>
-          )}
 
           <Form.Item>
             <Button type="primary" htmlType="submit" loading={loading}>

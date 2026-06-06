@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Input, Select, Space, message, DatePicker, InputNumber, Tag , Card, Dropdown } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined, EyeOutlined, ReloadOutlined, UserOutlined,  PhoneOutlined, EnvironmentOutlined, CalendarOutlined, MoreOutlined, ShoppingCartOutlined,  ClockCircleOutlined, CheckCircleOutlined,  CloseCircleOutlined, } from "@ant-design/icons";
+import { EyeOutlined, PlusOutlined, ReloadOutlined, UserOutlined, PhoneOutlined, EnvironmentOutlined, MoreOutlined, ShoppingCartOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import { orderAPI, Order } from "../api/orderAPI";
 import { productAPI } from "../api/productAPI";
 import { customerAPI } from "../api/customerAPI";
-import { ingredientAPI } from "../api/ingredientAPI";
 
 const Orders = () => {
     const [orders, setOrders] = useState<Order[]>([]);
@@ -13,16 +12,6 @@ const Orders = () => {
     const [query, setQuery] = useState("");
     const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
     const [detail, setDetail] = useState<Order | null>(null);
-    const [newStatus, setNewStatus] = useState<string>("");
-    const [filterOpen, setFilterOpen] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<string | null>(null);
-    const [shipFee, setShipFee] = useState<number | null>(null);
-    const [packagingOptions, setPackagingOptions] = useState<any[]>([]);
-    const [packagedItems, setPackagedItems] = useState<Array<{ ma_nguyen_lieu: number; ten_nguyen_lieu?: string; so_luong: number; don_gia: number }>>([]);
-    const [voucherType, setVoucherType] = useState<'amount' | 'percent'>('amount');
-    const [voucherValue, setVoucherValue] = useState<number>(0);
-    const [selectedPackagingId, setSelectedPackagingId] = useState<number | null>(null);
-    const [packQty, setPackQty] = useState<number>(1);
     const [showAddModal, setShowAddModal] = useState(false);
     const [customers, setCustomers] = useState<any[]>([]);
     const [products, setProducts] = useState<any[]>([]);
@@ -34,13 +23,9 @@ const Orders = () => {
     const [recipientAddress, setRecipientAddress] = useState("");
     const [deliveryTime, setDeliveryTime] = useState<string | null>(null);
     const [orderItems, setOrderItems] = useState<Array<{ ma_san_pham: number; ten_san_pham?: string; so_luong: number; don_gia: number }>>([]);
-    const [orderFieldErrors, setOrderFieldErrors] = useState<{ customer?: string; items?: string; phone?: string; address?: string }>({});
-    const [addVoucherType, setAddVoucherType] = useState<'amount' | 'percent'>('amount');
-    const [addVoucherValue, setAddVoucherValue] = useState<number>(0);
     const [selectedProduct, setSelectedProduct] = useState<number | undefined>(undefined);
 
     // Use enum values from your DB: 'pending','completed','cancelled'
-    const statuses = ["pending", "completed", "cancelled"];
     const statusLabels: Record<string, string> = {
         pending: "Đang chờ",
         completed: "Hoàn thành",
@@ -331,8 +316,6 @@ const Orders = () => {
         setRecipientAddress("");
         setDeliveryTime(null);
         setOrderItems([]);
-        setAddVoucherType('amount');
-        setAddVoucherValue(0);
         setShowAddModal(true);
     };
 
@@ -400,169 +383,21 @@ const Orders = () => {
 
     const computeTotal = () => orderItems.reduce((s, it) => s + (it.so_luong || 0) * (it.don_gia || 0), 0);
 
-    const handleCreateOrder = async () => {
-        // client-side validation: only require at least one product line
-        const errs: { items?: string } = {};
-        if (!orderItems || orderItems.length === 0) errs.items = 'Vui lòng thêm ít nhất một sản phẩm';
-        if (Object.keys(errs).length) {
-            setOrderFieldErrors(errs as any);
-            alert('Vui lòng thêm ít nhất một sản phẩm để tạo đơn hàng');
-            return;
-        }
-        setOrderFieldErrors({});
-
-        try {
-            const chi_tiet = orderItems.map(it => ({ ma_san_pham: it.ma_san_pham, so_luong: it.so_luong, don_gia: it.don_gia }));
-            const total = computeTotal();
-            let so_tien_giam_for_create = 0;
-            if (typeof addVoucherValue === 'number' && addVoucherValue > 0) {
-                if (addVoucherType === 'percent') {
-                    so_tien_giam_for_create = Math.round((total * (addVoucherValue / 100)) * 100) / 100;
-                } else {
-                    so_tien_giam_for_create = Number(addVoucherValue || 0);
-                }
-            }
-            const payload: any = { 
-              customer_id: selectedCustomer, 
-              shipping_address: recipientAddress || null, 
-              total_price: total, 
-              items: chi_tiet,
-              delivery_time: deliveryTime ? dayjs(deliveryTime).toISOString() : null
-            };
-            await orderAPI.create(payload);
-            alert('Tạo đơn hàng thành công');
-            setShowAddModal(false);
-            fetchOrders();
-            // notify dashboard/statistics to refresh totals
-            try { window.dispatchEvent(new Event('statsUpdated')); } catch (e) { /* ignore */ }
-        } catch (err) {
-            console.error('Lỗi tạo đơn', err);
-            alert('Lỗi khi tạo đơn hàng');
-        }
-    };
-
     const handleViewDetail = async (orderOrId: Order | number) => {
         const id = typeof orderOrId === 'number' ? orderOrId : orderOrId.id || 0;
         if (!id) return;
         try {
             const data = await orderAPI.getById(id);
             setDetail(data);
-            setNewStatus(data.status || "pending");
-            setShipFee(0);
-            setVoucherValue(0);
-            setVoucherType('amount');
-            // load packaging options (ingredients of type 'dong_goi')
-            try {
-                const ingr = await ingredientAPI.getAll();
-                const packs = (ingr || []).filter((i:any) => i.loai_nguyen_lieu === 'dong_goi');
-                setPackagingOptions(packs);
-            } catch (e) {
-                console.error('Không thể tải nguyên liệu đóng gói', e);
-                setPackagingOptions([]);
-            }
-            setPackagedItems([]);
         } catch (err) {
             console.error(err);
             alert("Lỗi khi lấy chi tiết");
         }
     };
 
-    const handleEditStatus = (record: Order) => {
-        setDetail(record);
-        setNewStatus(record.status || 'pending');
-    };
-
-    const handleAddPackagedItem = async () => {
-        if (!selectedPackagingId) return alert('Vui lòng chọn nguyên liệu đóng gói');
-        if (!packQty || packQty <= 0) return alert('Số lượng phải lớn hơn 0');
-        try {
-            // Get ingredient info to check stock quantity
-            const ingredient = await ingredientAPI.getById(selectedPackagingId);
-            const available = ingredient ? Number(ingredient.stock_quantity || 0) : 0;
-            if (available < packQty) {
-                return alert('Trong kho không đủ nguyên liệu đóng gói cho số lượng này');
-            }
-
-            const p = packagingOptions.find(x => x.ma_nguyen_lieu === selectedPackagingId);
-            if (!p) return alert('Nguyên liệu đóng gói không tồn tại');
-            const perUnit = (Number(p.gia_nhap || 0) && Number(p.so_luong_ton || 0) > 0) ? (Number(p.gia_nhap || 0) / Number(p.so_luong_ton || 1)) : Number(p.gia_nhap || 0);
-            const existing = packagedItems.find(it => it.ma_nguyen_lieu === selectedPackagingId);
-            if (existing) {
-                setPackagedItems(packagedItems.map(it => it.ma_nguyen_lieu === existing.ma_nguyen_lieu ? { ...it, so_luong: it.so_luong + packQty } : it));
-            } else {
-                setPackagedItems([...packagedItems, { ma_nguyen_lieu: p.ma_nguyen_lieu, ten_nguyen_lieu: p.ten_nguyen_lieu, so_luong: packQty, don_gia: perUnit }]);
-            }
-        } catch (e) {
-            console.error('Lỗi kiểm tra kho đóng gói', e);
-            alert('Không thể kiểm tra kho đóng gói');
-        }
-    };
-
-    const handleUpdateStatus = async () => {
-        if (!detail?.id) return;
-        try {
-            const previousStatus = detail.status;
-            // validate allowed transitions on client side too
-            const allowedTransitions: Record<string, string[]> = {
-                pending: ['completed', 'cancelled'],
-                completed: [],
-                cancelled: []
-            };
-            if (previousStatus === 'cancelled' || previousStatus === 'completed') {
-                alert('Đơn hàng ở trạng thái này không được chỉnh trạng thái.');
-                return;
-            }
-            if (previousStatus && previousStatus !== newStatus) {
-                const allowed = allowedTransitions[previousStatus] || [];
-                if (!allowed.includes(newStatus)) {
-                    alert('Không được phép chuyển trạng thái từ "' + (previousStatus || '') + '" sang "' + (newStatus || '') + '"');
-                    return;
-                }
-            }
-
-            const resp: any = await orderAPI.updateStatus(detail.id, newStatus);
-            alert(resp?.message || 'Cập nhật trạng thái thành công');
-            // refresh list and detail
-            fetchOrders();
-            const updated = await orderAPI.getById(detail.id);
-            setDetail(updated);
-            // Dispatch stats update event
-            if ((previousStatus as string) !== 'completed' && newStatus === 'completed') {
-                const amount = Number(updated.total_price || 0);
-                window.dispatchEvent(new CustomEvent('statsUpdated', { detail: { orderCompletedAmount: amount } }));
-            } else if ((previousStatus as string) === 'completed' && newStatus !== 'completed') {
-                const amount = Number(updated.total_price || 0);
-                window.dispatchEvent(new CustomEvent('statsUpdated', { detail: { orderRevertedAmount: amount } }));
-            } else {
-                window.dispatchEvent(new Event('statsUpdated'));
-            }
-        } catch (err) {
-            console.error(err);
-            // show backend error message when available
-            const msg = (err as any)?.response?.data?.message || (err as any)?.message || 'Lỗi khi cập nhật trạng thái';
-            alert(msg);
-        }
-    };
-
-    const handleDeleteOrder = async (id: number) => {
-        try {
-            await orderAPI.delete(id);
-            message.success('Xóa đơn hàng thành công');
-            fetchOrders();
-            setDetail(null);
-        } catch (err) {
-            console.error('Lỗi xóa đơn hàng', err);
-            message.error('Lỗi khi xóa đơn hàng');
-        }
-    };
-
-    // client-side filter based on selectedStatus and selectedDate (creation date YYYY-MM-DD)
+    // client-side filter based on selectedStatus (creation date YYYY-MM-DD)
     const displayedOrders = orders.filter(o => {
         if (selectedStatus !== 'all' && o.status !== selectedStatus) return false;
-        if (selectedDate) {
-            const t = o.created_at || '';
-            if (!t.startsWith(selectedDate)) return false;
-        }
         return true;
     });
     const totalOrders = orders.length;
