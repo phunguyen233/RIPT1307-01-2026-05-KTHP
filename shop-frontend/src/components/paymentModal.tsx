@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useEffect, useState, useCallback } from "react";
 import shopApiClient from "../api/shopApiClient";
 import { useNavigate } from "react-router-dom";
 
@@ -13,8 +12,8 @@ type Props = {
 };
 
 export default function PaymentModal({ maDonHang = null, amount: initAmount = 0, info: initInfo = "", onClose, onCancelled, onPaid }: Props) {
-  const [amount, setAmount] = useState<number>(initAmount);
-  const [info, setInfo] = useState<string>(initInfo);
+  const [amount] = useState<number>(initAmount);
+  const [info] = useState<string>(initInfo);
   const [loading, setLoading] = useState<boolean>(false);
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [qrUrl, setQrUrl] = useState<string>("");
@@ -24,13 +23,11 @@ export default function PaymentModal({ maDonHang = null, amount: initAmount = 0,
   const [errorMessage, setErrorMessage] = useState<string>("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if ((amount !== undefined && amount !== null) && info && info.trim() !== "") {
-      createPaymentLink();
+  const createPaymentLink = useCallback(async () => {
+    if ((amount === undefined || amount === null) || !info || info.trim() === "") {
+      setErrorMessage("Nhập số tiền và nội dung!");
+      return;
     }
-  }, [amount, info]);
-
-  const createPaymentLink = async () => {
     if (!amount || !info) {
       setErrorMessage("Nhập số tiền và nội dung!");
       return;
@@ -71,7 +68,11 @@ export default function PaymentModal({ maDonHang = null, amount: initAmount = 0,
     } finally {
       setLoading(false);
     }
-  };
+  }, [amount, info, maDonHang]);
+
+  useEffect(() => {
+    createPaymentLink();
+  }, [createPaymentLink]);
 
   const cancelOrder = async () => {
     if (!maDonHang) {

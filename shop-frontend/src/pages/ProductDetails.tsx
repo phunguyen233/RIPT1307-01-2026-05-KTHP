@@ -18,22 +18,13 @@ interface Product {
 
 const ProductDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const [userName, setUserName] = useState<string | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   // reviews removed - only show description
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        setUserName(user.ho_ten || user.name || user.ten_dang_nhap || null);
-      } catch {
-        setUserName(null);
-      }
-    }
+    // No need to read stored user here; only fetching product details
 
     const fetchProduct = async () => {
       try {

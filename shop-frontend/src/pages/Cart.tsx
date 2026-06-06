@@ -56,7 +56,7 @@ export default function Cart() {
     // Validate checkout fields before creating order
     const fieldErrs: { name?: string; phone?: string; address?: string } = {};
     if (!checkoutName || !checkoutName.trim()) fieldErrs.name = 'Vui lòng nhập tên người nhận';
-    const phoneRe = /^[0-9\+\-\s]{7,20}$/;
+    const phoneRe = /^[0-9+\-\s]{7,20}$/;
     if (!checkoutPhone || !phoneRe.test(checkoutPhone)) fieldErrs.phone = 'Số điện thoại không hợp lệ';
     if (!checkoutAddress || !checkoutAddress.trim()) fieldErrs.address = 'Vui lòng nhập địa chỉ nhận hàng';
     if (Object.keys(fieldErrs).length) {

@@ -21,7 +21,7 @@ export default function Products({ onLogout }: ProductsProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [query, setQuery] = useState<string>("");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
-  const [pressedButton, setPressedButton] = useState<string | null>(null);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>("newest");

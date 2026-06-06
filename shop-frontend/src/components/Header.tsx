@@ -15,7 +15,6 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<any>(null);
-  const [showMenu, setShowMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [cartCount, setCartCount] = useState(0);
@@ -200,15 +199,15 @@ export default function Header() {
         role="menu"
         aria-hidden={!showMobileNav}
       >
-        <Link to="/" className="mobile-nav-link" onClick={() => setShowMenu(false)}>Trang chủ</Link>
-        <Link to="/products" className="mobile-nav-link" onClick={() => setShowMenu(false)}>Sản phẩm</Link>
-        <Link to="/about" className="mobile-nav-link" onClick={() => setShowMenu(false)}>Giới thiệu</Link>
-        <Link to="/contact" className="mobile-nav-link" onClick={() => setShowMenu(false)}>Liên hệ</Link>
-        <Link to="/branches" className="mobile-nav-link" onClick={() => setShowMenu(false)}>Chi nhánh</Link>
-        <Link to="/orders-history" className="mobile-nav-link" onClick={() => setShowMenu(false)}>Đơn hàng</Link>
+        <Link to="/" className="mobile-nav-link" onClick={() => setShowMobileNav(false)}>Trang chủ</Link>
+        <Link to="/products" className="mobile-nav-link" onClick={() => setShowMobileNav(false)}>Sản phẩm</Link>
+        <Link to="/about" className="mobile-nav-link" onClick={() => setShowMobileNav(false)}>Giới thiệu</Link>
+        <Link to="/contact" className="mobile-nav-link" onClick={() => setShowMobileNav(false)}>Liên hệ</Link>
+        <Link to="/branches" className="mobile-nav-link" onClick={() => setShowMobileNav(false)}>Chi nhánh</Link>
+        <Link to="/orders-history" className="mobile-nav-link" onClick={() => setShowMobileNav(false)}>Đơn hàng</Link>
 
         <div className="border-t border-gray-100 mt-2 pt-2 mobile-top-row">
-          <Link to="/cart" className="mobile-nav-link icon-link cart-btn" onClick={() => setShowMenu(false)}>
+          <Link to="/cart" className="mobile-nav-link icon-link cart-btn" onClick={() => setShowMobileNav(false)}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6 6H21L20 14H8L6 6Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <circle cx="10" cy="19" r="1" fill="currentColor"/>
@@ -220,13 +219,13 @@ export default function Header() {
             )}
           </Link>
 
-          {user ? (
+              {user ? (
             <>
               <div className="mobile-username">{user.ho_ten || user.ten_dang_nhap}</div>
-              <button onClick={() => { handleLogout(); setShowMenu(false); }} className="mobile-logout-btn">Đăng xuất</button>
+              <button onClick={() => { handleLogout(); setShowMobileNav(false); }} className="mobile-logout-btn">Đăng xuất</button>
             </>
           ) : (
-            <Link to="/auth" className="mobile-nav-link icon-link" onClick={() => setShowMenu(false)}>
+            <Link to="/auth" className="mobile-nav-link icon-link" onClick={() => setShowMobileNav(false)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M20 21V19C20 16.7909 18.2091 15 16 15H8C5.79086 15 4 16.7909 4 19V21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 <circle cx="12" cy="8" r="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

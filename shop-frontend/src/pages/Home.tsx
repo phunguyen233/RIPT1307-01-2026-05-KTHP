@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
@@ -57,18 +57,18 @@ export default function Home() {
   };
 
   // Auto change slide every 5s
+  const nextSlide = useCallback(() => {
+    setDirection(1);
+    setIndex((prev) => (prev + 1) % images.length);
+  }, [images.length]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       nextSlide();
     }, 5000);
 
     return () => clearInterval(timer);
-  }, []);
-
-  const nextSlide = () => {
-    setDirection(1);
-    setIndex((prev) => (prev + 1) % images.length);
-  };
+  }, [nextSlide]);
 
   const goTo = (i: number) => {
     setDirection(i > index ? 1 : -1);

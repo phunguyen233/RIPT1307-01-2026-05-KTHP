@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Breadcrumbs from "../components/Breadcrumbs";
 import ordersAPI from "../api/ordersAPI";
-import { API_KEY } from "../api/shopApiClient";
 
 export default function OrderHistory() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -11,8 +10,7 @@ export default function OrderHistory() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [isAuth, setIsAuth] = useState<boolean>(true);
   const navigate = useNavigate();
-  const location = useLocation();
-  const [infoModal, setInfoModal] = useState<string | null>((location.state as any)?.infoModal || null);
+  // infoModal removed as it was unused
 
   const statusLabel = (s: string | undefined) => {
     if (!s) return 'Chờ xử lý';
@@ -36,22 +34,7 @@ export default function OrderHistory() {
     return date.toLocaleString('vi-VN');
   };
 
-  const getOrderStatusSteps = (status: string | undefined) => {
-    const isCanceled = status === 'huy' || status === 'cancelled' || status === 'canceled';
-    const isCompleted = status === 'hoan_tat' || status === 'da_thanh_toan' || status === 'completed';
-
-    if (isCanceled) {
-      return [
-        { key: 'pending', label: 'Chờ xử lý' },
-        { key: 'cancelled', label: 'Đã hủy' },
-      ];
-    }
-
-    return [
-      { key: 'pending', label: 'Chờ xử lý' },
-      { key: 'completed', label: 'Hoàn thành' },
-    ];
-  };
+  // getOrderStatusSteps removed (unused)
 
   const normalizeOrder = (order: any) => ({
     ...order,
@@ -66,7 +49,7 @@ export default function OrderHistory() {
     items: order.order_items || order.items || [],
   });
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       setIsAuth(false);
@@ -92,11 +75,11 @@ export default function OrderHistory() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   const handleViewDetail = async (orderId: number | string) => {
     const token = localStorage.getItem('token');

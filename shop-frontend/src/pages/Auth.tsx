@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import shopApiClient, { API_KEY } from "../api/shopApiClient";
-import customersAPI from "../api/customersAPI";
+import shopApiClient from "../api/shopApiClient";
 
 type AuthTab = "login" | "register";
 type LoginFieldErrors = Partial<{ username: string; password: string }>;
@@ -129,7 +128,7 @@ export default function Auth() {
     }
   };
 
-  const initGSI = (): Promise<void> => {
+  const initGSI = useCallback((): Promise<void> => {
     return new Promise((resolve) => {
       const scriptId = "gsi-client-script";
       const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -214,11 +213,11 @@ export default function Auth() {
 
       finishInit();
     });
-  };
+  }, [from, navigate, stateFrom.autoCheckout]);
 
   useEffect(() => {
     initGSI().catch((err) => console.error("initGSI error", err));
-  }, []);
+  }, [initGSI]);
 
   const handleGoogleSignIn = async () => {
     setLoginError("");
